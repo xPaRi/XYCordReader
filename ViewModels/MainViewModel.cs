@@ -40,6 +40,11 @@ namespace XYCordReader.ViewModels
 
         #region Serial Reader
 
+        /// <summary>
+        /// Oddělovače pro čtení dat zaslaných seriovou linkou...
+        /// </summary>
+        private static readonly char[] SeparatorList = [' ', ':', 'X', 'Y', 'Z', 'E'];
+
         private void DataReceivedHandler(object sender, SerialDataReceivedEventArgs e)
         {
             var serialPort = (SerialPort)sender;
@@ -52,15 +57,14 @@ namespace XYCordReader.ViewModels
                 if (indata.StartsWith("X:"))
                 {
                     //X:0.00 Y:0.00 Z:0.00 E:0.00 Count X:1400 Y:-400 Z:800
-                    var aValues = indata.Split(new char[] { ' ', ':', 'X', 'Y', 'Z', 'E' }, StringSplitOptions.RemoveEmptyEntries);
+                    var aValues = indata.Split(SeparatorList, StringSplitOptions.RemoveEmptyEntries);
 
-                    if (decimal.TryParse(aValues[0], CultureInfo.InvariantCulture, out var x)
+                    if (aValues.Length >= 3
+                        && decimal.TryParse(aValues[0], CultureInfo.InvariantCulture, out var x)
                         && decimal.TryParse(aValues[1], CultureInfo.InvariantCulture, out var y)
                         && decimal.TryParse(aValues[2], CultureInfo.InvariantCulture, out var z))
                     {
-                        CurrentX = x;
-                        CurrentY = y;
-                        CurrentZ = z;
+                        CurrentXYZ.Set(x, y, z);
                     }
                 }
             }
@@ -87,109 +91,26 @@ namespace XYCordReader.ViewModels
         public IEnumerable<string> PortNameList => SerialPort.GetPortNames().OrderBy(it=>it);
 
         /// <summary>
-        /// Aktuální krok
+        /// Sada velikostí kroků a rychlostí
         /// </summary>
-        public decimal CurrentStep
+        public StepLengthAndSpeedList StepLengthAndSpeedList
         {
-            get => _CurrentStep;
-            set
-            {
-                if (value == _CurrentStep) 
-                    return;
-
-                _CurrentStep = value;
-
-                OnPropertyChanged(nameof(CurrentStep));
-            }
+            get => _StepLengthAndSpeedList;
+            set => _StepLengthAndSpeedList = value;
         }
 
-        private decimal _CurrentStep = 1;
+        private StepLengthAndSpeedList _StepLengthAndSpeedList = new();
 
         /// <summary>
-        /// Aktuální rychlost
+        /// Aktuální souřadnice stroje
         /// </summary>
-        public decimal CurrentSpeed
-        {
-            get => _CurrentSpeed;
-            set
-            {
-                if (value == _CurrentSpeed) 
-                    return;
-
-                _CurrentSpeed = value;
-
-                OnPropertyChanged(nameof(CurrentSpeed));
-            }
-        }
-
-        private decimal _CurrentSpeed = 2000;
-
-        /// <summary>
-        /// Aktuální souřadnice X
-        /// </summary>
-        public decimal CurrentX
+        public Coordinate CurrentXYZ
         { 
-            get => _CurrentX;
-            set 
-            {
-                if (_CurrentX.Equals(value))
-                    return;
-
-                if (value < 0)
-                    value = 0;
-
-                _CurrentX = Math.Round(value, 2);
-
-                OnPropertyChanged(nameof(CurrentX));
-            }
+            get => _CurrentXYZ;
+            set => _CurrentXYZ = value;
         }
 
-        private decimal _CurrentX = 0;
-
-        /// <summary>
-        /// Aktuální souřadnice Y
-        /// </summary>
-        public decimal CurrentY
-        { 
-            get => _CurrentY;
-            set 
-            {
-                if (_CurrentY.Equals(value))
-                    return;
-
-                if (value < 0)
-                    value = 0;
-
-                _CurrentY = Math.Round(value, 2);
-
-                OnPropertyChanged(nameof(CurrentY));
-            }
-        }
-
-        private decimal _CurrentY = 0;
-
-        /// <summary>
-        /// Aktuální souřadnice Z
-        /// </summary>
-        public decimal CurrentZ 
-        { 
-            get => _CurrentZ;
-            set 
-            {
-                if (_CurrentZ.Equals(value))
-                    return;
-
-                if (value < 0)
-                    value = 0;
-
-                _CurrentZ = Math.Round(value, 2);
-
-                OnPropertyChanged(nameof(CurrentZ));
-            }
-        }
-
-        private decimal _CurrentZ = 0;
-
+        private Coordinate _CurrentXYZ = new();
 
         /// <summary>
         /// Aktuálně vybraný port
@@ -291,9 +212,7 @@ namespace XYCordReader.ViewModels
             _SerialPort.WriteLine("G28 W"); //Homing
             _SerialPort.WriteLine("G92 X0 Y0 Z0"); //Set zero position
 
-            CurrentX = 0;
-            CurrentY = 0;
-            CurrentZ = 0;
+            CurrentXYZ.Homing();
         }
 
         /// <summary>
@@ -314,75 +233,116 @@ namespace XYCordReader.ViewModels
 
         #endregion
 
+        #region Set Zero
+
+        /// <summary>
+        /// Nastaví Zero podle X
+        /// </summary>
+        public ICommand SetZeroX => _SetZeroX ??= new CommandHandler(SetZeroXCmd, true);
+
+        private ICommand? _SetZeroX;
+
+        private void SetZeroXCmd() => CurrentXYZ.SetZeroByAbsX();
+
+        /// <summary>
+        /// Nastaví Zero podle Y
+        /// </summary>
+        public ICommand SetZeroY => _SetZeroY ??= new CommandHandler(SetZeroYCmd, true);
+
+        private ICommand? _SetZeroY;
+
+        private void SetZeroYCmd() => CurrentXYZ.SetZeroByAbsY();
+
+        /// <summary>
+        /// Nastaví Zero podle Z
+        /// </summary>
+        public ICommand SetZeroZ => _SetZeroZ ??= new CommandHandler(SetZeroZCmd, true);
+
+        private ICommand? _SetZeroZ;
+
+        private void SetZeroZCmd() => CurrentXYZ.SetZeroByAbsZ();
+
+        /// <summary>
+        /// Nastaví Zero podle XYZ
+        /// </summary>
+        public ICommand SetZeroXYZ => _SetZeroXYZ ??= new CommandHandler(SetZeroXYZCmd, true);
+
+        private ICommand? _SetZeroXYZ;
+
+        private void SetZeroXYZCmd() => CurrentXYZ.SetZeroByAbsXYZ();
+
+        #endregion
+
         #region Moving Command
 
-        private void MoveXYZ(int setX, int setY, int setZ)
+        private void MoveXYZ(int directionX, int directionY, int directionZ, ModifierKeys modifier)
         {
             if (_SerialPort == null || !_SerialPort.IsOpen)
                 return;
 
-            CurrentX += setX * CurrentStep;
-            CurrentY += setY * CurrentStep;
-            CurrentZ += setZ * CurrentStep;
+            var stepLengthAndSpeed = StepLengthAndSpeedList.FirstOrDefault(it=>it.ModifierKeys == modifier, StepLengthAndSpeedList[0]);
 
-            _SerialPort.WriteLine($"G1 X{CurrentX} Y{CurrentY} Z{CurrentZ} F{CurrentSpeed}");
+            CurrentXYZ.Add(stepLengthAndSpeed, directionX, directionY, directionZ);
+
+            //Jen pro ladění, ať se futr nejezdí s tiskárnou
+            _SerialPort.WriteLine($"G1 X{CurrentXYZ.AbsX} Y{CurrentXYZ.AbsY} Z{CurrentXYZ.AbsZ} F{stepLengthAndSpeed.Speed}");
         }
 
         /// <summary>
         /// X+
         /// </summary>
-        public ICommand XUp => _XUp ??= new CommandHandler(XUpCmd, true);
+        public ICommand XUp => _XUp ??= new CommandHandlerWithModifiers(modifier => XUpCmd(modifier), true);
 
         private ICommand? _XUp;
 
-        private void XUpCmd() => MoveXYZ(1, 0, 0);
+        private void XUpCmd(ModifierKeys modifier) => MoveXYZ(1, 0, 0, modifier);
 
         /// <summary>
         /// X-
         /// </summary>
-        public ICommand XDown => _XDown ??= new CommandHandler(XDownCmd, true);
+        public ICommand XDown => _XDown ??= new CommandHandlerWithModifiers(modifier => XDownCmd(modifier), true);
 
         private ICommand? _XDown;
 
-        private void XDownCmd() => MoveXYZ(-1, 0, 0);
+        private void XDownCmd(ModifierKeys modifier) => MoveXYZ(-1, 0, 0, modifier);
 
 
         /// <summary>
         /// Y+
         /// </summary>
-        public ICommand YUp => _YUp ??= new CommandHandler(YUpCmd, true);
+        public ICommand YUp => _YUp ??= new CommandHandlerWithModifiers(modifier => YUpCmd(modifier), true);
 
         private ICommand? _YUp;
 
-        private void YUpCmd() => MoveXYZ(0, 1, 0);
+        private void YUpCmd(ModifierKeys modifier) => MoveXYZ(0, 1, 0, modifier);
 
         /// <summary>
         /// Y-
         /// </summary>
-        public ICommand YDown => _YDown ??= new CommandHandler(YDownCmd, true);
+        public ICommand YDown => _YDown ??= new CommandHandlerWithModifiers(modifier => YDownCmd(modifier), true);
 
         private ICommand? _YDown;
 
-        private void YDownCmd() => MoveXYZ(0, -1, 0);
+        private void YDownCmd(ModifierKeys modifier) => MoveXYZ(0, -1, 0, modifier);
 
 
         /// <summary>
         /// Z+
         /// </summary>
-        public ICommand ZUp => _ZUp ??= new CommandHandler(ZUpCmd, true);
+        public ICommand ZUp => _ZUp ??= new CommandHandlerWithModifiers(modifier => ZUpCmd(modifier), true);
 
         private ICommand? _ZUp;
 
-        private void ZUpCmd() => MoveXYZ(0, 0, 1);
+        private void ZUpCmd(ModifierKeys modifier) => MoveXYZ(0, 0, 1, modifier);
 
         /// <summary>
         /// Z-
         /// </summary>
-        public ICommand ZDown => _ZDown ??= new CommandHandler(ZDownCmd, true);
+        public ICommand ZDown => _ZDown ??= new CommandHandlerWithModifiers(modifier => ZDownCmd(modifier), true);
 
         private ICommand? _ZDown;
 
-        private void ZDownCmd() => MoveXYZ(0, 0, -1);
+        private void ZDownCmd(ModifierKeys modifier) => MoveXYZ(0, 0, -1, modifier);
 
         #endregion
 

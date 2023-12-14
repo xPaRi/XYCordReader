@@ -3,8 +3,10 @@ using Syncfusion.Themes.MaterialLightBlue.WPF;
 using Syncfusion.Windows.Shared;
 using System.Diagnostics;
 using System.Text;
+using System.Transactions;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
@@ -28,7 +30,49 @@ namespace XYCordReader
             InitializeComponent();
 
             this.KeyDown += this.MainWindow_KeyDown;
+
+            this.Loaded += this.MainWindow_Loaded;
+
         }
+
+        private void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        {
+            SettingUpDownButton(AbsX);
+            SettingUpDownButton(AbsY);
+            SettingUpDownButton(AbsZ);
+
+            SettingUpDownButton(RelX, 18);
+            SettingUpDownButton(RelY, 18);
+            SettingUpDownButton(RelZ, 18);
+
+            SettingUpDownButton(ZeroX);
+            SettingUpDownButton(ZeroY);
+            SettingUpDownButton(ZeroZ);
+        }
+
+        private static void SettingUpDownButton(UpDown control, double? fontSize = null)
+        {
+            if (fontSize.HasValue)
+            {
+                control.FontSize = fontSize.Value;
+            }
+
+            control.TextAlignment = TextAlignment.Right;
+            control.BorderThickness = new Thickness(1);
+            control.Padding = new Thickness(2);
+            control.Focusable = false;
+            control.NumberDecimalDigits = 2;
+            control.IsReadOnly = true;
+            control.Margin = new Thickness(5);
+            control.MinWidth = 100;
+
+            if (control.Template.FindName("upbutton", control) is RepeatButton upButton)
+                upButton.Visibility = Visibility.Collapsed;
+
+            if (control.Template.FindName("downbutton", control) is RepeatButton downButton)
+                downButton.Visibility = Visibility.Collapsed;
+        }
+
 
         private void SetSf()
         {
@@ -71,37 +115,36 @@ namespace XYCordReader
             {
                 //X
                 case Key.Left:
-                    dataContext.XDown.Execute(null);
+                    dataContext.XDown.Execute(Keyboard.Modifiers);
                     e.Handled = true;
                     break;
                 case Key.Right:
-                    dataContext.XUp.Execute(null);
+                    dataContext.XUp.Execute(Keyboard.Modifiers);
                     e.Handled = true;
                     break;
 
                 //Y
                 case Key.Up:
-                    dataContext.YUp.Execute(null);
+                    dataContext.YUp.Execute(Keyboard.Modifiers);
                     e.Handled = true;
                     break;
                 case Key.Down:
-                    dataContext.YDown.Execute(null);
+                    dataContext.YDown.Execute(Keyboard.Modifiers);
                     e.Handled = true;
                     break;
 
                 //Z
                 case Key.PageUp:
-                    dataContext.ZUp.Execute(null);
+                    dataContext.ZUp.Execute(Keyboard.Modifiers);
                     e.Handled = true;
                     break;
                 case Key.PageDown:
-                    dataContext.ZDown.Execute(null);
+                    dataContext.ZDown.Execute(Keyboard.Modifiers);
                     e.Handled = true;
                     break;
             }
 
-
-            Debug.WriteLine($"{e.Key}; {e.KeyStates}; {e.SystemKey}");
+            Debug.WriteLine($"{Keyboard.Modifiers}; {e.Key}; {e.KeyStates}; {e.SystemKey}");
         }
 
 

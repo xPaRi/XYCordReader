@@ -16,7 +16,7 @@
         
         WindowStartupLocation="CenterScreen"
         Title="{Binding Title}" 
-        Height="450" Width="800"
+        Height="550" Width="800"
     >
 
     <sf:ChromelessWindow.DataContext>
@@ -27,7 +27,6 @@
         <ResourceDictionary>
             <gc:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
             <gc:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
-
         </ResourceDictionary>
     </sf:ChromelessWindow.Resources>
 
@@ -89,14 +88,50 @@
         <DockPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
             <Button DockPanel.Dock="Right" Content="E_xit" Command="{Binding TryClose}" Margin="5,0,0,0" Padding="5" />
             <Button DockPanel.Dock="Right" Content="_Export…" HorizontalAlignment="Right" Margin="5,0" Padding="5"/>
+            <Button DockPanel.Dock="Right" Content="Re_ad" HorizontalAlignment="Left" Padding="5"/>
         </DockPanel>
 
         <!-- Center panel -->
         <DockPanel DockPanel.Dock="Top">
             
-            <!-- Settings -->
             <DockPanel DockPanel.Dock="Right" Margin="10,0,0,0">
-                <Grid DockPanel.Dock="Top" VerticalAlignment="Top" ShowGridLines="True">
+                
+                <!-- Settings -->
+                <DockPanel DockPanel.Dock="Bottom" VerticalAlignment="Top">
+                    <Label DockPanel.Dock="Top" Content="Settings" FontSize="18"/>
+
+                    <sf:SfDataGrid ItemsSource="{Binding StepLengthAndSpeedList}"
+                                   DockPanel.Dock="Bottom"
+                                   AutoGenerateColumns="False"
+                                   AllowEditing="False"
+                                   ColumnSizer="Auto"
+                                   RowHoverHighlightingBrush="Transparent"
+                                   SelectionMode="Single"
+                                   EditTrigger="OnTap"
+                                   >
+
+                        <sf:SfDataGrid.Columns>
+                            <sf:GridTextColumn HeaderText="Modify Key" MappingName="ModifierKeysName" 
+                                               AllowFocus="False"
+                                               />
+                            <sf:GridNumericColumn MappingName="StepLength" HeaderText="Step Length" 
+                                                  AllowEditing="True"
+                                                  MinValue="0.01" MaxValue="100" 
+                                                  AllowNullValue="False" 
+                                                  NumberDecimalDigits="2"
+                                                  />
+                            <sf:GridNumericColumn MappingName="Speed" HeaderText="Speed"
+                                                  AllowEditing="True"
+                                                  MinValue="1" MaxValue="30000" 
+                                                  AllowNullValue="False" 
+                                                  NumberDecimalDigits="0"
+                                                  />
+                        </sf:SfDataGrid.Columns>
+                    </sf:SfDataGrid>
+                </DockPanel>
+                
+                <!-- Coordinates -->
+                <Grid DockPanel.Dock="Top" VerticalAlignment="Top">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition />
                         <ColumnDefinition />
@@ -112,77 +147,49 @@
                     </Grid.RowDefinitions>
 
                     <Label Grid.Row="0" Grid.Column="0" Content=" "/>
-                    <Label Grid.Row="0" Grid.Column="1" Content="X"/>
-                    <Label Grid.Row="0" Grid.Column="2" Content="Y"/>
-                    <Label Grid.Row="0" Grid.Column="3" Content="Z"/>
-                    <Label Grid.Row="1" Grid.Column="0" Content="Current"/>
-                    <Label Grid.Row="2" Grid.Column="0" Content="Relative"/>
-                    <Label Grid.Row="3" Grid.Column="0" Content="Zero"/>
+                    <Label Grid.Row="0" Grid.Column="1" Content="X" HorizontalAlignment="Center"/>
+                    <Label Grid.Row="0" Grid.Column="2" Content="Y" HorizontalAlignment="Center"/>
+                    <Label Grid.Row="0" Grid.Column="3" Content="Z" HorizontalAlignment="Center"/>
+                    <Label Grid.Row="1" Grid.Column="0" Content="Absolute" VerticalAlignment="Center"/>
+                    <Label Grid.Row="2" Grid.Column="0" Content="Relative" VerticalAlignment="Center"/>
+                    <Label Grid.Row="3" Grid.Column="0" Content="Zero" VerticalAlignment="Center"/>
 
-                    <Label Grid.Row="1" Grid.Column="1" Content="{Binding CurrentX}"/>
-                    <Label Grid.Row="1" Grid.Column="2" Content="{Binding CurrentY}"/>
-                    <Label Grid.Row="1" Grid.Column="3" Content="{Binding CurrentZ}"/>
-                    <Label Grid.Row="2" Grid.Column="1" Content="0.00"/>
-                    <Label Grid.Row="2" Grid.Column="2" Content="0.00"/>
-                    <Label Grid.Row="2" Grid.Column="3" Content="0.00"/>
-                    <Label Grid.Row="3" Grid.Column="1" Content="0.00"/>
-                    <Label Grid.Row="3" Grid.Column="2" Content="0.00"/>
-                    <Label Grid.Row="3" Grid.Column="3" Content="0.00"/>
+                    <sf:UpDown x:Name="AbsX" Grid.Row="1" Grid.Column="1" Value="{Binding CurrentXYZ.AbsX}"/>
+                    <sf:UpDown x:Name="AbsY" Grid.Row="1" Grid.Column="2" Value="{Binding CurrentXYZ.AbsY}"/>
+                    <sf:UpDown x:Name="AbsZ" Grid.Row="1" Grid.Column="3" Value="{Binding CurrentXYZ.AbsZ}"/>
+
+                    <sf:UpDown x:Name="RelX" Grid.Row="2" Grid.Column="1" Value="{Binding CurrentXYZ.RelX, Mode=OneWay}"/>
+                    <sf:UpDown x:Name="RelY" Grid.Row="2" Grid.Column="2" Value="{Binding CurrentXYZ.RelY, Mode=OneWay}"/>
+                    <sf:UpDown x:Name="RelZ" Grid.Row="2" Grid.Column="3" Value="{Binding CurrentXYZ.RelZ, Mode=OneWay}"/>
+
+                    <sf:UpDown x:Name="ZeroX" Grid.Row="3" Grid.Column="1" Value="{Binding CurrentXYZ.ZeroX}"/>
+                    <sf:UpDown x:Name="ZeroY" Grid.Row="3" Grid.Column="2" Value="{Binding CurrentXYZ.ZeroY}"/>
+                    <sf:UpDown x:Name="ZeroZ" Grid.Row="3" Grid.Column="3" Value="{Binding CurrentXYZ.ZeroZ}"/>
                 </Grid>
 
-                <DockPanel DockPanel.Dock="Top" VerticalAlignment="Top">
-                    <Label DockPanel.Dock="Top" Content="Set zero position"/>
-                    <Button DockPanel.Dock="Left" Content="X" Padding="10,0" Margin="5,0"/>
-                    <Button DockPanel.Dock="Left" Content="Y" Padding="10,0" Margin="5,0"/>
-                    <Button DockPanel.Dock="Left" Content="Z" Padding="10,0" Margin="5,0"/>
-                    <Button DockPanel.Dock="Left" Content="X Y Z" Padding="10,0" Margin="5,0" HorizontalAlignment="Left" />
+                <!-- Buttons -->
+                <DockPanel DockPanel.Dock="Top" VerticalAlignment="Top" Margin="0,10,0,0">
+                    <Label DockPanel.Dock="Top" Content="Set zero position" FontSize="18"/>
+                    <Button DockPanel.Dock="Left" Content="X" 
+                            Command="{Binding SetZeroX}" IsEnabled="{Binding IsConnected}"
+                            Padding="20,10" Margin="5,0"/>
+                    <Button DockPanel.Dock="Left" Content="Y" 
+                            Command="{Binding SetZeroY}" IsEnabled="{Binding IsConnected}"
+                            Padding="20,10" Margin="5,0"/>
+                    <Button DockPanel.Dock="Left" Content="Z" 
+                            Command="{Binding SetZeroZ}" IsEnabled="{Binding IsConnected}"
+                            Padding="20,10" Margin="5,0"/>
+                    <Button DockPanel.Dock="Left" Content="X Y Z" 
+                            Command="{Binding SetZeroXYZ}" IsEnabled="{Binding IsConnected}"
+                            Padding="20,10" Margin="5,0" HorizontalAlignment="Left" />
                 </DockPanel>
 
-                <DockPanel DockPanel.Dock="Top" VerticalAlignment="Top">
-                    <Label DockPanel.Dock="Top" Content="Set Step &amp; Speed"/>
-
-                    <Grid DockPanel.Dock="Top" VerticalAlignment="Top" ShowGridLines="True">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition />
-                            <ColumnDefinition />
-                            <ColumnDefinition />
-                        </Grid.ColumnDefinitions>
-
-                        <Grid.RowDefinitions>
-                            <RowDefinition />
-                            <RowDefinition />
-                            <RowDefinition />
-                            <RowDefinition />
-                            <RowDefinition />
-                        </Grid.RowDefinitions>
-
-                        <Label Grid.Row="0" Grid.Column="0" Content="Key"/>
-                        <Label Grid.Row="0" Grid.Column="1" Content="Step &#x0a;[mm]"/>
-                        <Label Grid.Row="0" Grid.Column="2" Content="Speed &#x0a;[mm/s]"/>
-                        <Label Grid.Row="1" Grid.Column="0" Content="Normal"/>
-                        <Label Grid.Row="2" Grid.Column="0" Content="Ctrl"/>
-                        <Label Grid.Row="3" Grid.Column="0" Content="Shift"/>
-                        <Label Grid.Row="4" Grid.Column="0" Content="Alt"/>
-
-                        <TextBox  Grid.Row="1" Grid.Column="1" Text="10.00"/>
-                        <TextBox  Grid.Row="1" Grid.Column="2" Text="10.00"/>
-                        <TextBox  Grid.Row="2" Grid.Column="1" Text="10.00"/>
-                        <TextBox  Grid.Row="2" Grid.Column="2" Text="10.00"/>
-                        <TextBox  Grid.Row="3" Grid.Column="1" Text="10.00"/>
-                        <TextBox  Grid.Row="3" Grid.Column="2" Text="10.00"/>
-                        <TextBox  Grid.Row="4" Grid.Column="1" Text="10.00"/>
-                        <TextBox  Grid.Row="4" Grid.Column="2" Text="10.00"/>
-                    </Grid>
-
-                </DockPanel>
-
-                
-                
+               
             </DockPanel>
 
             <!-- Coordinates -->
             <DockPanel DockPanel.Dock="Left">
-                <DataGrid Name="DG1" ItemsSource="{Binding}" AutoGenerateColumns="False">
+                <DataGrid ItemsSource="{Binding}" AutoGenerateColumns="False">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="Line"/>
                         <DataGridTextColumn Header="Abs X" />
