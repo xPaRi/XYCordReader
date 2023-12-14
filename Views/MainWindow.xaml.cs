@@ -1,0 +1,109 @@
+﻿using Syncfusion.SfSkinManager;
+using Syncfusion.Themes.MaterialLightBlue.WPF;
+using Syncfusion.Windows.Shared;
+using System.Diagnostics;
+using System.Text;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Documents;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Navigation;
+using System.Windows.Shapes;
+using XYCordReader.ViewModels;
+
+namespace XYCordReader
+{
+    /// <summary>
+    /// Interaction logic for MainWindow.xaml
+    /// </summary>
+    public partial class MainWindow : ChromelessWindow
+    {
+        public MainWindow()
+        {
+            SetSf();
+
+            InitializeComponent();
+
+            this.KeyDown += this.MainWindow_KeyDown;
+        }
+
+        private void SetSf()
+        {
+            var themeSettings = new MaterialLightBlueThemeSettings
+            {
+                BodyFontSize = 14,
+                FontFamily = new FontFamily("Callibri"),
+                Palette = MaterialPalette.Default,
+                    
+                /*
+                Palette = MaterialPalette.Cyan
+                Palette = MaterialPalette.Default
+                Palette = MaterialPalette.Orange
+                Palette = MaterialPalette.LightBlue
+                Palette = MaterialPalette.Blue
+                Palette = MaterialPalette.Red
+
+                Palette = MaterialPalette.Pink
+                Palette = MaterialPalette.Indigo
+                Palette = MaterialPalette.DeepPurple
+                Palette = MaterialPalette.Purple
+                Palette = MaterialPalette.Green
+                */
+            };
+
+            SfSkinManager.RegisterThemeSettings("MaterialLightBlue", themeSettings);
+
+            this.TitleBarBackground = themeSettings.PrimaryBackground;
+            this.TitleBarForeground = themeSettings.PrimaryForeground;
+            //this.TitleBarHeight = themeSettings.TitleFontSize * 1;
+            this.TitleFontSize = themeSettings.TitleFontSize * 1.2;
+        }
+
+        private void MainWindow_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (this.DataContext is not MainViewModel dataContext)
+                return;
+
+            switch(e.Key)
+            {
+                //X
+                case Key.Left:
+                    dataContext.XDown.Execute(null);
+                    e.Handled = true;
+                    break;
+                case Key.Right:
+                    dataContext.XUp.Execute(null);
+                    e.Handled = true;
+                    break;
+
+                //Y
+                case Key.Up:
+                    dataContext.YUp.Execute(null);
+                    e.Handled = true;
+                    break;
+                case Key.Down:
+                    dataContext.YDown.Execute(null);
+                    e.Handled = true;
+                    break;
+
+                //Z
+                case Key.PageUp:
+                    dataContext.ZUp.Execute(null);
+                    e.Handled = true;
+                    break;
+                case Key.PageDown:
+                    dataContext.ZDown.Execute(null);
+                    e.Handled = true;
+                    break;
+            }
+
+
+            Debug.WriteLine($"{e.Key}; {e.KeyStates}; {e.SystemKey}");
+        }
+
+
+    }
+}

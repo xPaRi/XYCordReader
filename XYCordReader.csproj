@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Folder Include="Converters\" />
+    <Folder Include="Extensions\" />
+    <Folder Include="help\" />
+    <Folder Include="Images\" />
+    <Folder Include="Models\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Syncfusion.SfChromelessWindow.WPF" Version="23.2.7" />
+    <PackageReference Include="Syncfusion.SfSkinManager.WPF" Version="23.2.7" />
+    <PackageReference Include="Syncfusion.Shared.WPF" Version="23.2.7" />
+    <PackageReference Include="Syncfusion.Themes.MaterialLightBlue.WPF" Version="23.2.7" />
+    <PackageReference Include="System.IO.Ports" Version="8.0.0" />
+  </ItemGroup>
+
+</Project>
