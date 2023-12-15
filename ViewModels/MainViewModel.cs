@@ -75,7 +75,7 @@ namespace XYCordReader.ViewModels
         /// <summary>
         /// Název aplikace
         /// </summary>
-        public static string Title => "XY CORD READER";
+        public static string Title => "XYZ CORD READER";
 
         public static int BaudRate => 115200;
 
@@ -131,6 +131,26 @@ namespace XYCordReader.ViewModels
         private string _PortName;
 
         public bool IsConnected => (_SerialPort != null && _SerialPort.IsOpen);
+
+        /// <summary>
+        /// Povolí nebo zakáže viditelnost ovládání osy Z.
+        /// </summary>
+        public bool AllowZ
+        {
+            get => _AllowZ;
+            set
+            {
+                if (_AllowZ == value)
+                    return;
+
+                _AllowZ = value;
+
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(AllowZ)));
+            }
+        }
+
+        private bool _AllowZ = false;
+
 
         #region Action
 
@@ -271,6 +291,15 @@ namespace XYCordReader.ViewModels
 
         private void SetZeroXYZCmd() => CurrentXYZ.SetZeroByAbsXYZ();
 
+        /// <summary>
+        /// Nastaví Zero podle XY
+        /// </summary>
+        public ICommand SetZeroXY => _SetZeroXY ??= new CommandHandler(SetZeroXYCmd, true);
+
+        private ICommand? _SetZeroXY;
+
+        private void SetZeroXYCmd() => CurrentXYZ.SetZeroByAbsXY();
+
         #endregion
 
         #region Moving Command
@@ -346,7 +375,37 @@ namespace XYCordReader.ViewModels
 
         #endregion
 
+        #region Coordinate List Action
 
+        /// <summary>
+        /// Přidá na konec seznamu relativní souřadnice
+        /// </summary>
+        public ICommand AddRelCoordinate => _AddRelCoordinate ??= new CommandHandlerWithModifiers(modifier => AddRelCoordinateCmd(modifier), true);
+
+        private ICommand? _AddRelCoordinate;
+
+        private void AddRelCoordinateCmd(ModifierKeys modifier) => MoveXYZ(1, 0, 0, modifier);
+
+        /// <summary>
+        /// Vloží před aktuání pozici kurzoru do seznamu relativní souřadnice
+        /// </summary>
+        public ICommand InsertRelCoordinate => _InsertRelCoordinate ??= new CommandHandlerWithModifiers(modifier => InsertRelCoordinateCmd(modifier), true);
+
+        private ICommand? _InsertRelCoordinate;
+
+        private void InsertRelCoordinateCmd(ModifierKeys modifier) => MoveXYZ(1, 0, 0, modifier);
+
+        /// <summary>
+        /// Odstraní vybrané souřadnice ze seznamu
+        /// </summary>
+        public ICommand DeleteRelCoordinate => _DeleteRelCoordinate ??= new CommandHandlerWithModifiers(modifier => DeleteRelCoordinateCmd(modifier), true);
+
+        private ICommand? _DeleteRelCoordinate;
+
+        private void DeleteRelCoordinateCmd(ModifierKeys modifier) => MoveXYZ(1, 0, 0, modifier);
+
+
+        #endregion
 
     }
 }

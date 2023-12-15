@@ -60,9 +60,7 @@ namespace XYCordReader
             control.TextAlignment = TextAlignment.Right;
             control.BorderThickness = new Thickness(1);
             control.Padding = new Thickness(2);
-            control.Focusable = false;
             control.NumberDecimalDigits = 2;
-            control.IsReadOnly = true;
             control.Margin = new Thickness(5);
             control.MinWidth = 100;
 

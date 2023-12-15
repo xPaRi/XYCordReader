@@ -13,7 +13,7 @@
                      
         syncfusionskin:SfSkinManager.Theme="{syncfusionskin:SkinManagerExtension ThemeName=MaterialLightBlue}"
         UseNativeChrome="False"
-        
+                     
         WindowStartupLocation="CenterScreen"
         Title="{Binding Title}" 
         Height="550" Width="800"
@@ -27,6 +27,11 @@
         <ResourceDictionary>
             <gc:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
             <gc:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
+
+            <Style x:Key="{x:Type ToolTip}" TargetType="{x:Type ToolTip}">
+                <Setter Property="FontSize" Value="24"/>
+                <Setter Property="HorizontalOffset" Value="20"/>
+            </Style>
         </ResourceDictionary>
     </sf:ChromelessWindow.Resources>
 
@@ -37,15 +42,18 @@
             <ComboBox DockPanel.Dock="Left" 
                       ItemsSource="{Binding PortNameList}" 
                       SelectedValue="{Binding PortName}"
+                      ToolTip="Port list."
                       IsEnabled="{Binding IsConnected, Converter={StaticResource InverseBooleanConverter}}"
                       MinWidth="100"/>
             <Button DockPanel.Dock="Left" Content="_Refresh" 
                     Command="{Binding RefreshPortNameList}" 
+                    ToolTip="Refresh the port list."
                     IsEnabled="{Binding IsConnected, Converter={StaticResource InverseBooleanConverter}}"
                     Margin="5,0" Padding="5"
                     />
             <Button DockPanel.Dock="Left" Content="_Connect" 
                     Command="{Binding ConnectPort}"
+                    ToolTip="Connect to selected port."
                     Margin="5,0" Padding="5">
                 <Button.Visibility>
                     <Binding Path = "IsConnected" Converter="{StaticResource BooleanToVisibilityConverter}">
@@ -60,6 +68,7 @@
             </Button>
             <Button DockPanel.Dock="Left" Content="_Disconnect" 
                     Command="{Binding DisConnectPort}" 
+                    ToolTip="Disonnect from current port."
                     Margin="5,0" Padding="5">
                 <Button.Visibility>
                     <Binding Path = "IsConnected" Converter="{StaticResource BooleanToVisibilityConverter}">
@@ -72,23 +81,26 @@
                     </Binding>
                 </Button.Visibility>
             </Button>
-            <Button DockPanel.Dock="Left" Content="_Homing (G28, G92)" 
+            <Button DockPanel.Dock="Left" Content="_Homing" 
                     Command="{Binding Homing}" 
                     IsEnabled="{Binding IsConnected}"
                     HorizontalAlignment="Left" Margin="5,0" Padding="5"
+                    ToolTip="Homing (G28 W)&#10;and set the current position as zero (G92 X0 Y0 Z0)"
                     />
-            <Button DockPanel.Dock="Left" Content="_Get Current XYZ (M114)" 
+            <Button DockPanel.Dock="Left" Content="Get XYZ" 
                     Command="{Binding GetCurrentXYZ}" 
                     IsEnabled="{Binding IsConnected}"
                     HorizontalAlignment="Left" Margin="5,0" Padding="5"
+                    ToolTip="Get current machine position (M114)&#10;and set it to Absolute coordinates."
                     />
         </DockPanel>
 
         <!-- Bottom panel -->
         <DockPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
-            <Button DockPanel.Dock="Right" Content="E_xit" Command="{Binding TryClose}" Margin="5,0,0,0" Padding="5" />
-            <Button DockPanel.Dock="Right" Content="_Export…" HorizontalAlignment="Right" Margin="5,0" Padding="5"/>
-            <Button DockPanel.Dock="Right" Content="Re_ad" HorizontalAlignment="Left" Padding="5"/>
+            <Button DockPanel.Dock="Right" Content="Exit" Command="{Binding TryClose}" Margin="5,0,0,0" Padding="5" />
+            <Button DockPanel.Dock="Right" Content="Export…" HorizontalAlignment="Right" Margin="5,0" Padding="5"/>
+            <Button DockPanel.Dock="Left" Content="Action" HorizontalAlignment="Left" Padding="5"/>
+            <CheckBox DockPanel.Dock="Left" Content="Allow Z Coordinate" IsChecked="{Binding AllowZ}" VerticalAlignment="Center" Margin="20,0,0,0"/>
         </DockPanel>
 
         <!-- Center panel -->
@@ -144,47 +156,144 @@
                         <RowDefinition />
                         <RowDefinition />
                         <RowDefinition />
+                        <RowDefinition />
+                        <RowDefinition />
+                        <RowDefinition />
                     </Grid.RowDefinitions>
 
-                    <Label Grid.Row="0" Grid.Column="0" Content=" "/>
+                    <Label Grid.Row="0" Grid.Column="0" Content=""/>
                     <Label Grid.Row="0" Grid.Column="1" Content="X" HorizontalAlignment="Center"/>
                     <Label Grid.Row="0" Grid.Column="2" Content="Y" HorizontalAlignment="Center"/>
-                    <Label Grid.Row="0" Grid.Column="3" Content="Z" HorizontalAlignment="Center"/>
+                    <Label Grid.Row="0" Grid.Column="3" Content="Z" HorizontalAlignment="Center">
+                        <Label.Visibility>
+                            <Binding Path = "AllowZ" Converter="{StaticResource BooleanToVisibilityConverter}">
+                                <Binding.ConverterParameter>
+                                    <x:Array Type = "{x:Type sys:Object}">
+                                        <Visibility>Visible</Visibility>
+                                        <Visibility>Collapsed</Visibility>
+                                    </x:Array>
+                                </Binding.ConverterParameter>
+                            </Binding>
+                        </Label.Visibility>
+
+                    </Label>
                     <Label Grid.Row="1" Grid.Column="0" Content="Absolute" VerticalAlignment="Center"/>
-                    <Label Grid.Row="2" Grid.Column="0" Content="Relative" VerticalAlignment="Center"/>
+                    <Label Grid.Row="2" Grid.Column="0" Content="" VerticalAlignment="Center"/>
                     <Label Grid.Row="3" Grid.Column="0" Content="Zero" VerticalAlignment="Center"/>
+                    <Label Grid.Row="4" Grid.Column="0" Content="Relative" VerticalAlignment="Center"/>
 
-                    <sf:UpDown x:Name="AbsX" Grid.Row="1" Grid.Column="1" Value="{Binding CurrentXYZ.AbsX}"/>
-                    <sf:UpDown x:Name="AbsY" Grid.Row="1" Grid.Column="2" Value="{Binding CurrentXYZ.AbsY}"/>
-                    <sf:UpDown x:Name="AbsZ" Grid.Row="1" Grid.Column="3" Value="{Binding CurrentXYZ.AbsZ}"/>
+                    <sf:UpDown x:Name="AbsX" Grid.Row="1" Grid.Column="1" Value="{Binding CurrentXYZ.AbsX}" IsReadOnly="True" Focusable="False"/>
+                    <sf:UpDown x:Name="AbsY" Grid.Row="1" Grid.Column="2" Value="{Binding CurrentXYZ.AbsY}" IsReadOnly="True" Focusable="False"/>
+                    <sf:UpDown x:Name="AbsZ" Grid.Row="1" Grid.Column="3" Value="{Binding CurrentXYZ.AbsZ}" IsReadOnly="True" Focusable="False">
+                        <sf:UpDown.Visibility>
+                            <Binding Path = "AllowZ" Converter="{StaticResource BooleanToVisibilityConverter}">
+                                <Binding.ConverterParameter>
+                                    <x:Array Type = "{x:Type sys:Object}">
+                                        <Visibility>Visible</Visibility>
+                                        <Visibility>Collapsed</Visibility>
+                                    </x:Array>
+                                </Binding.ConverterParameter>
+                            </Binding>
+                        </sf:UpDown.Visibility>
+                    </sf:UpDown>
 
-                    <sf:UpDown x:Name="RelX" Grid.Row="2" Grid.Column="1" Value="{Binding CurrentXYZ.RelX, Mode=OneWay}"/>
-                    <sf:UpDown x:Name="RelY" Grid.Row="2" Grid.Column="2" Value="{Binding CurrentXYZ.RelY, Mode=OneWay}"/>
-                    <sf:UpDown x:Name="RelZ" Grid.Row="2" Grid.Column="3" Value="{Binding CurrentXYZ.RelZ, Mode=OneWay}"/>
+                    <Button Content="⏷" ToolTip="Set Zero X by Absolute X."
+                            Grid.Row="2" Grid.Column="1"
+                            Command="{Binding SetZeroX}" IsEnabled="{Binding IsConnected}"
+                            Padding="10,5" Margin="5"
+                            />
 
-                    <sf:UpDown x:Name="ZeroX" Grid.Row="3" Grid.Column="1" Value="{Binding CurrentXYZ.ZeroX}"/>
+                    <Button Content="⏷" ToolTip="Set Zero Y by Absolute Y."
+                            Grid.Row="2" Grid.Column="2" 
+                            Command="{Binding SetZeroY}" IsEnabled="{Binding IsConnected}"
+                            Padding="10,5" Margin="5"
+                            />
+
+                    <Button Content="⏷" ToolTip="Set Zero Z by Absolute Z."
+                            Grid.Row="2" Grid.Column="3"
+                            Command="{Binding SetZeroZ}" IsEnabled="{Binding IsConnected}"
+                            Padding="10,5" Margin="5"
+                            >
+                        <Button.Visibility>
+                            <Binding Path = "AllowZ" Converter="{StaticResource BooleanToVisibilityConverter}">
+                                <Binding.ConverterParameter>
+                                    <x:Array Type = "{x:Type sys:Object}">
+                                        <Visibility>Visible</Visibility>
+                                        <Visibility>Collapsed</Visibility>
+                                    </x:Array>
+                                </Binding.ConverterParameter>
+                            </Binding>
+                        </Button.Visibility>
+
+                    </Button>
+
+                    <sf:UpDown x:Name="ZeroX" Grid.Row="3" Grid.Column="1" Value="{Binding CurrentXYZ.ZeroX}" IsEnabled="True"/>
                     <sf:UpDown x:Name="ZeroY" Grid.Row="3" Grid.Column="2" Value="{Binding CurrentXYZ.ZeroY}"/>
-                    <sf:UpDown x:Name="ZeroZ" Grid.Row="3" Grid.Column="3" Value="{Binding CurrentXYZ.ZeroZ}"/>
+                    <sf:UpDown x:Name="ZeroZ" Grid.Row="3" Grid.Column="3" Value="{Binding CurrentXYZ.ZeroZ}">
+                        <sf:UpDown.Visibility>
+                            <Binding Path = "AllowZ" Converter="{StaticResource BooleanToVisibilityConverter}">
+                                <Binding.ConverterParameter>
+                                    <x:Array Type = "{x:Type sys:Object}">
+                                        <Visibility>Visible</Visibility>
+                                        <Visibility>Collapsed</Visibility>
+                                    </x:Array>
+                                </Binding.ConverterParameter>
+                            </Binding>
+                        </sf:UpDown.Visibility>
+
+                    </sf:UpDown>
+
+                    <sf:UpDown x:Name="RelX" Grid.Row="4" Grid.Column="1" Value="{Binding CurrentXYZ.RelX, Mode=OneWay}" IsReadOnly="True" Focusable="False"/>
+                    <sf:UpDown x:Name="RelY" Grid.Row="4" Grid.Column="2" Value="{Binding CurrentXYZ.RelY, Mode=OneWay}" IsReadOnly="True" Focusable="False"/>
+                    <sf:UpDown x:Name="RelZ" Grid.Row="4" Grid.Column="3" Value="{Binding CurrentXYZ.RelZ, Mode=OneWay}" IsReadOnly="True" Focusable="False">
+                        <sf:UpDown.Visibility>
+                            <Binding Path = "AllowZ" Converter="{StaticResource BooleanToVisibilityConverter}">
+                                <Binding.ConverterParameter>
+                                    <x:Array Type = "{x:Type sys:Object}">
+                                        <Visibility>Visible</Visibility>
+                                        <Visibility>Collapsed</Visibility>
+                                    </x:Array>
+                                </Binding.ConverterParameter>
+                            </Binding>
+                        </sf:UpDown.Visibility>
+                    </sf:UpDown>
                 </Grid>
 
-                <!-- Buttons -->
-                <DockPanel DockPanel.Dock="Top" VerticalAlignment="Top" Margin="0,10,0,0">
-                    <Label DockPanel.Dock="Top" Content="Set zero position" FontSize="18"/>
-                    <Button DockPanel.Dock="Left" Content="X" 
-                            Command="{Binding SetZeroX}" IsEnabled="{Binding IsConnected}"
-                            Padding="20,10" Margin="5,0"/>
-                    <Button DockPanel.Dock="Left" Content="Y" 
-                            Command="{Binding SetZeroY}" IsEnabled="{Binding IsConnected}"
-                            Padding="20,10" Margin="5,0"/>
-                    <Button DockPanel.Dock="Left" Content="Z" 
-                            Command="{Binding SetZeroZ}" IsEnabled="{Binding IsConnected}"
-                            Padding="20,10" Margin="5,0"/>
-                    <Button DockPanel.Dock="Left" Content="X Y Z" 
-                            Command="{Binding SetZeroXYZ}" IsEnabled="{Binding IsConnected}"
-                            Padding="20,10" Margin="5,0" HorizontalAlignment="Left" />
-                </DockPanel>
+                <Grid DockPanel.Dock="Top" VerticalAlignment="Center" Margin="0,10,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition />
+                        <ColumnDefinition />
+                        <ColumnDefinition />
+                    </Grid.ColumnDefinitions>
 
-               
+                    <Grid.RowDefinitions>
+                        <RowDefinition />
+                    </Grid.RowDefinitions>
+
+                    <Button Content="INSERT&#10;Relative&#10;coordinate" ToolTip=" "
+                            Grid.Row="0" Grid.Column="0"
+                            Command="{Binding InsertRelCoordinate}" IsEnabled="{Binding IsConnected}"
+                            TextBlock.TextAlignment="Center"
+                            Padding="10,5" Margin="5"
+                            />
+
+                    <Button Content="ADD&#10;Relative&#10;coordinate" ToolTip=" "
+                            Grid.Row="0" Grid.Column="1"
+                            Command="{Binding AddRelCoordinate}" IsEnabled="{Binding IsConnected}"
+                            TextBlock.TextAlignment="Center"
+                            Padding="10,5" Margin="5"
+                            />
+
+                    <Button Content="DELETE&#10;Relative&#10;coordinate" ToolTip=" "
+                            Grid.Row="0" Grid.Column="2"
+                            Command="{Binding DeleteRelCoordinate}" IsEnabled="{Binding IsConnected}"
+                            TextBlock.TextAlignment="Center"
+                            Padding="10,5" Margin="5"
+                            />
+
+                </Grid>
+                    
+
             </DockPanel>
 
             <!-- Coordinates -->

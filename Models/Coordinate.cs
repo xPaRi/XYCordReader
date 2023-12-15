@@ -189,6 +189,8 @@ namespace XYCordReader.Models
 
         public void SetZeroByAbsZ() => ZeroZ = AbsZ;
 
+        public void SetZeroByAbsXY() => SetZero(AbsX, AbsY, null);
+
         public void SetZeroByAbsXYZ() => SetZero(AbsX, AbsY, AbsZ);
 
         #endregion
@@ -228,12 +230,12 @@ namespace XYCordReader.Models
         /// <param name="x"></param>
         /// <param name="y"></param>
         /// <param name="z"></param>
-        public void SetZero(decimal x, decimal y, decimal z)
+        public void SetZero(decimal x, decimal y, decimal? z = null)
 		{
 			ZeroX = x;
 			ZeroY = y;
-			ZeroZ = z;
-		}
+            ZeroZ = z.GetValueOrDefault(_ZeroZ);
+        }
 
 		/// <summary>
 		/// Přičte příslušné souřadnice podle zadaného směru.
