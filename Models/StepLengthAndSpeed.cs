@@ -11,9 +11,8 @@ namespace XYCordReader.Models
     /// <summary>
     /// Nastavení kroku a rychlosti.
     /// </summary>
-    public class StepLengthAndSpeed : INotifyPropertyChanged
+    public class StepLengthAndSpeed : NotifyPropertyChangedBase
     {
-        public event PropertyChangedEventHandler? PropertyChanged;
         public StepLengthAndSpeed(ModifierKeys modifierKeys, decimal stepLength, int speed)
         {
 			_ModifierKeys = modifierKeys;
@@ -36,7 +35,7 @@ namespace XYCordReader.Models
 
 				_ModifierKeys = value;
 
-				PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ModifierKeys)));
+				OnPropertyChanged();
 			}
 		}
 
@@ -49,15 +48,7 @@ namespace XYCordReader.Models
 		public decimal StepLength
 		{
 			get => _StepLength;
-			set
-			{
-				if (_StepLength == value)
-					return;
-
-				_StepLength = value;
-
-				PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(StepLength)));
-			}
+			set => SetValue(ref _StepLength, value);
 		}
 
 		private decimal _StepLength;
@@ -69,18 +60,10 @@ namespace XYCordReader.Models
 		public int Speed
 		{
 			get => _Speed;
-			set
-			{
-				if (_Speed == value)
-					return;
+            set => SetValue(ref _Speed, value);
+        }
 
-				_Speed = value;
-
-				PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Speed)));
-			}
-		}
-
-		private int _Speed;
+        private int _Speed;
 
         public override string ToString() => $"{nameof(ModifierKeys)}={ModifierKeys}; {nameof(StepLength)}={StepLength}; {nameof(Speed)}={Speed}";
     }

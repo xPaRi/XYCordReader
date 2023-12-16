@@ -15,10 +15,8 @@ using System.Runtime.CompilerServices;
 
 namespace XYCordReader.ViewModels
 {
-    public class MainViewModel : INotifyPropertyChanged
+    public class MainViewModel : NotifyPropertyChangedBase
     {
-        public event PropertyChangedEventHandler? PropertyChanged;
-
         /// <summary>
         /// Na tomto portu bude probíhat komunikace
         /// </summary>
@@ -27,16 +25,19 @@ namespace XYCordReader.ViewModels
         public MainViewModel() 
         {
             _PortName = PortNameList.Last().ToString();
+            _CurrentXYZ.PropertyChanged += this._CurrentXYZ_PropertyChanged;
         }
 
-        #region Helpers
-
-        private void OnPropertyChanged(string propertyName)
+        private void _CurrentXYZ_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
+            if (e.PropertyName == null)
+                return;
 
-        #endregion
+            if (e.PropertyName.StartsWith("ZERO", StringComparison.InvariantCultureIgnoreCase))
+            {
+                StoreXYZList.SetZero(CurrentXYZ.ZeroX, CurrentXYZ.ZeroY, CurrentXYZ.ZeroZ);
+            }
+        }
 
         #region Serial Reader
 
@@ -75,7 +76,7 @@ namespace XYCordReader.ViewModels
         /// <summary>
         /// Název aplikace
         /// </summary>
-        public static string Title => "XYZ CORD READER";
+        public static string Title => "XYZ COORD READER";
 
         public static int BaudRate => 115200;
 
@@ -138,15 +139,7 @@ namespace XYCordReader.ViewModels
         public bool AllowZ
         {
             get => _AllowZ;
-            set
-            {
-                if (_AllowZ == value)
-                    return;
-
-                _AllowZ = value;
-
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(AllowZ)));
-            }
+            set => SetValue(ref _AllowZ, value);
         }
 
         private bool _AllowZ = false;
@@ -262,7 +255,10 @@ namespace XYCordReader.ViewModels
 
         private ICommand? _SetZeroX;
 
-        private void SetZeroXCmd() => CurrentXYZ.SetZeroByAbsX();
+        private void SetZeroXCmd()
+        {
+            CurrentXYZ.SetZeroByAbsX();
+        }
 
         /// <summary>
         /// Nastaví Zero podle Y
@@ -271,7 +267,10 @@ namespace XYCordReader.ViewModels
 
         private ICommand? _SetZeroY;
 
-        private void SetZeroYCmd() => CurrentXYZ.SetZeroByAbsY();
+        private void SetZeroYCmd()
+        {
+            CurrentXYZ.SetZeroByAbsY();
+        }
 
         /// <summary>
         /// Nastaví Zero podle Z
@@ -280,7 +279,10 @@ namespace XYCordReader.ViewModels
 
         private ICommand? _SetZeroZ;
 
-        private void SetZeroZCmd() => CurrentXYZ.SetZeroByAbsZ();
+        private void SetZeroZCmd()
+        {
+            CurrentXYZ.SetZeroByAbsZ();
+        }
 
         /// <summary>
         /// Nastaví Zero podle XYZ
@@ -289,7 +291,10 @@ namespace XYCordReader.ViewModels
 
         private ICommand? _SetZeroXYZ;
 
-        private void SetZeroXYZCmd() => CurrentXYZ.SetZeroByAbsXYZ();
+        private void SetZeroXYZCmd()
+        {
+            CurrentXYZ.SetZeroByAbsXYZ();
+        }
 
         /// <summary>
         /// Nastaví Zero podle XY
@@ -298,7 +303,10 @@ namespace XYCordReader.ViewModels
 
         private ICommand? _SetZeroXY;
 
-        private void SetZeroXYCmd() => CurrentXYZ.SetZeroByAbsXY();
+        private void SetZeroXYCmd()
+        {
+            CurrentXYZ.SetZeroByAbsXY();
+        }
 
         #endregion
 
@@ -378,31 +386,58 @@ namespace XYCordReader.ViewModels
         #region Coordinate List Action
 
         /// <summary>
+        /// Seznam souřadnic.
+        /// </summary>
+        public StoreXYZList StoreXYZList
+        {
+            get => _StoreXYZList;
+            set
+            {
+                if (_StoreXYZList == value)
+                    return;
+
+                _StoreXYZList = value;
+
+                OnPropertyChanged();
+            }
+        }
+
+        private StoreXYZList _StoreXYZList = [];
+
+        private StoreXYZ GetCoordinate()
+        {
+            var storeXYZ = new StoreXYZ(CurrentXYZ.AbsX, CurrentXYZ.AbsY, CurrentXYZ.AbsZ);
+            storeXYZ.SetZero(CurrentXYZ.ZeroX, CurrentXYZ.ZeroY, CurrentXYZ.ZeroZ);
+
+            return storeXYZ;
+        }
+
+        /// <summary>
         /// Přidá na konec seznamu relativní souřadnice
         /// </summary>
-        public ICommand AddRelCoordinate => _AddRelCoordinate ??= new CommandHandlerWithModifiers(modifier => AddRelCoordinateCmd(modifier), true);
+        public ICommand AddRelCoordinate => _AddRelCoordinate ??= new CommandHandler(AddRelCoordinateCmd, true);
 
         private ICommand? _AddRelCoordinate;
 
-        private void AddRelCoordinateCmd(ModifierKeys modifier) => MoveXYZ(1, 0, 0, modifier);
+        private void AddRelCoordinateCmd() => StoreXYZList.Add(GetCoordinate());
 
         /// <summary>
         /// Vloží před aktuání pozici kurzoru do seznamu relativní souřadnice
         /// </summary>
-        public ICommand InsertRelCoordinate => _InsertRelCoordinate ??= new CommandHandlerWithModifiers(modifier => InsertRelCoordinateCmd(modifier), true);
+        public ICommand InsertRelCoordinate => _InsertRelCoordinate ??= new CommandHandler(InsertRelCoordinateCmd, true);
 
         private ICommand? _InsertRelCoordinate;
 
-        private void InsertRelCoordinateCmd(ModifierKeys modifier) => MoveXYZ(1, 0, 0, modifier);
+        private void InsertRelCoordinateCmd() => StoreXYZList.Insert(1, GetCoordinate());
 
         /// <summary>
         /// Odstraní vybrané souřadnice ze seznamu
         /// </summary>
-        public ICommand DeleteRelCoordinate => _DeleteRelCoordinate ??= new CommandHandlerWithModifiers(modifier => DeleteRelCoordinateCmd(modifier), true);
+        public ICommand DeleteRelCoordinate => _DeleteRelCoordinate ??= new CommandHandler(DeleteRelCoordinateCmd, true);
 
         private ICommand? _DeleteRelCoordinate;
 
-        private void DeleteRelCoordinateCmd(ModifierKeys modifier) => MoveXYZ(1, 0, 0, modifier);
+        private void DeleteRelCoordinateCmd() => StoreXYZList.RemoveAt(1);
 
 
         #endregion

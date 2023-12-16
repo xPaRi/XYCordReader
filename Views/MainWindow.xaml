@@ -116,28 +116,34 @@
                                    DockPanel.Dock="Bottom"
                                    AutoGenerateColumns="False"
                                    AllowEditing="False"
-                                   ColumnSizer="Auto"
+                                   ColumnSizer="SizeToHeader"
                                    RowHoverHighlightingBrush="Transparent"
                                    SelectionMode="Single"
                                    EditTrigger="OnTap"
+                                   AllowSorting="False"
                                    >
 
                         <sf:SfDataGrid.Columns>
-                            <sf:GridTextColumn HeaderText="Modify Key" MappingName="ModifierKeysName" 
+                            <sf:GridTextColumn HeaderText="Modify Key" MappingName="ModifierKeysName"
+                                               HorizontalHeaderContentAlignment="Left"
                                                AllowFocus="False"
+                                               MinimumWidth="120"
                                                />
                             <sf:GridNumericColumn MappingName="StepLength" HeaderText="Step Length" 
                                                   AllowEditing="True"
+                                                  HorizontalHeaderContentAlignment="Right"
                                                   MinValue="0.01" MaxValue="100" 
                                                   AllowNullValue="False" 
                                                   NumberDecimalDigits="2"
                                                   />
                             <sf:GridNumericColumn MappingName="Speed" HeaderText="Speed"
                                                   AllowEditing="True"
+                                                  HorizontalHeaderContentAlignment="Right"
                                                   MinValue="1" MaxValue="30000" 
                                                   AllowNullValue="False" 
                                                   NumberDecimalDigits="0"
                                                   />
+
                         </sf:SfDataGrid.Columns>
                     </sf:SfDataGrid>
                 </DockPanel>
@@ -298,15 +304,51 @@
 
             <!-- Coordinates -->
             <DockPanel DockPanel.Dock="Left">
-                <DataGrid ItemsSource="{Binding}" AutoGenerateColumns="False">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="Line"/>
-                        <DataGridTextColumn Header="Abs X" />
-                        <DataGridTextColumn Header="Abs Y" />
-                        <DataGridTextColumn Header="Rel X" />
-                        <DataGridTextColumn Header="Rel Y" />
-                    </DataGrid.Columns>
-                </DataGrid>
+                <sf:SfDataGrid ItemsSource="{Binding StoreXYZList, Mode=OneWay}"
+                                   DockPanel.Dock="Bottom"
+                                   AutoGenerateColumns="False"
+                                   AllowEditing="False"
+                                   ColumnSizer="Star"
+                                   SelectionMode="Extended"
+                                   AllowSorting="False"
+                                   >
+
+                    <sf:SfDataGrid.StackedHeaderRows>
+                        <sf:StackedHeaderRow>
+                            <sf:StackedHeaderRow.StackedColumns>
+                                <sf:StackedColumn ChildColumns="AbsX,AbsY,AbsZ" HeaderText="Absolute"/>
+                                <sf:StackedColumn ChildColumns="RelX,RelY,RelZ" HeaderText="Relative"/>
+                            </sf:StackedHeaderRow.StackedColumns>
+                        </sf:StackedHeaderRow>
+                    </sf:SfDataGrid.StackedHeaderRows>
+
+
+                    <sf:SfDataGrid.Columns>
+                        <sf:GridNumericColumn MappingName="AbsX" HeaderText="X" 
+                                                  NumberDecimalDigits="2"
+                                                  />
+                        <sf:GridNumericColumn MappingName="AbsY" HeaderText="Y"
+                                                  NumberDecimalDigits="2"
+                                                  />
+                        <sf:GridNumericColumn MappingName="AbsZ" HeaderText="Z"
+                                                  NumberDecimalDigits="2"
+                                                  IsHidden="{Binding AllowZ, Converter={StaticResource InverseBooleanConverter}}"
+                                                  />
+                        <sf:GridNumericColumn MappingName="RelX" HeaderText="X" 
+                                                  MinValue="-999" MaxValue="999" 
+                                                  AllowNullValue="False" 
+                                                  NumberDecimalDigits="2"
+                                                  />
+                        <sf:GridNumericColumn MappingName="RelY" HeaderText="Y"
+                                                  NumberDecimalDigits="2"
+                                                  />
+                        <sf:GridNumericColumn MappingName="RelZ" HeaderText="Z"
+                                                  NumberDecimalDigits="2"
+                                                  IsHidden="{Binding AllowZ, Converter={StaticResource InverseBooleanConverter}}"
+                                                  />
+
+                    </sf:SfDataGrid.Columns>
+                </sf:SfDataGrid>
             </DockPanel>
 
 

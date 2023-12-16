@@ -7,19 +7,8 @@ using System.Threading.Tasks;
 
 namespace XYCordReader.Models
 {
-    public class Coordinate : INotifyPropertyChanged
+    public class Coordinate : NotifyPropertyChangedBase
     {
-        #region PropertyChanged
-
-        public event PropertyChangedEventHandler? PropertyChanged;
-
-        private void OnPropertyChanged(string propertyName)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-
-        #endregion
-
         #region Absolute XYZ
 
         /// <summary>
@@ -33,13 +22,7 @@ namespace XYCordReader.Models
 				if (value < 0)
                     value = 0;
 
-				if (_AbsX == value)
-					return;
-
-				_AbsX = value;
-
-				PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(AbsX)));
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(RelX)));
+                SetValue(ref _AbsX, value, [nameof(RelX)]);
             }
 		}
 
@@ -55,16 +38,10 @@ namespace XYCordReader.Models
 			{
                 if (value < 0)
                     value = 0;
-                
-				if (_AbsY == value)
-					return;
 
-				_AbsY = value;
-
-				PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(AbsY)));
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(RelY)));
+                SetValue(ref _AbsY, value, [nameof(RelY)]);
             }
-		}
+        }
 
 		private decimal _AbsY;
 
@@ -78,16 +55,10 @@ namespace XYCordReader.Models
 			{
                 if (value < 0)
                     value = 0;
-                
-				if (_AbsZ == value)
-					return;
 
-				_AbsZ = value;
-
-				PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(AbsZ)));
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(RelZ)));
+                SetValue(ref _AbsZ, value, [nameof(RelZ)]);
             }
-		}
+        }
 
 		private decimal _AbsZ;
 
@@ -125,13 +96,7 @@ namespace XYCordReader.Models
                 if (value < 0)
                     value = 0;
 
-                if (_ZeroX == value)
-                    return;
-
-                _ZeroX = value;
-
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ZeroX)));
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(RelX)));
+                SetValue(ref _ZeroX, value, [nameof(RelX)]);
             }
         }
 
@@ -148,13 +113,7 @@ namespace XYCordReader.Models
                 if (value < 0)
                     value = 0;
 
-                if (_ZeroY == value)
-                    return;
-
-                _ZeroY = value;
-
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ZeroY)));
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(RelY)));
+                SetValue(ref _ZeroY, value, [nameof(RelY)]);
             }
         }
 
@@ -171,13 +130,7 @@ namespace XYCordReader.Models
                 if (value < 0)
                     value = 0;
 
-                if (_ZeroZ == value)
-                    return;
-
-                _ZeroZ = value;
-
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ZeroZ)));
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(RelZ)));
+                SetValue(ref _ZeroZ, value, [nameof(RelZ)]);
             }
         }
 
