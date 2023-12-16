@@ -41,9 +41,9 @@ namespace XYCordReader
             SettingUpDownButton(AbsY);
             SettingUpDownButton(AbsZ);
 
-            SettingUpDownButton(RelX, 18);
-            SettingUpDownButton(RelY, 18);
-            SettingUpDownButton(RelZ, 18);
+            SettingUpDownButton(RelX, 22);
+            SettingUpDownButton(RelY, 22);
+            SettingUpDownButton(RelZ, 22);
 
             SettingUpDownButton(ZeroX);
             SettingUpDownButton(ZeroY);
@@ -79,28 +79,12 @@ namespace XYCordReader
                 BodyFontSize = 14,
                 FontFamily = new FontFamily("Callibri"),
                 Palette = MaterialPalette.Default,
-                    
-                /*
-                Palette = MaterialPalette.Cyan
-                Palette = MaterialPalette.Default
-                Palette = MaterialPalette.Orange
-                Palette = MaterialPalette.LightBlue
-                Palette = MaterialPalette.Blue
-                Palette = MaterialPalette.Red
-
-                Palette = MaterialPalette.Pink
-                Palette = MaterialPalette.Indigo
-                Palette = MaterialPalette.DeepPurple
-                Palette = MaterialPalette.Purple
-                Palette = MaterialPalette.Green
-                */
             };
 
             SfSkinManager.RegisterThemeSettings("MaterialLightBlue", themeSettings);
 
             this.TitleBarBackground = themeSettings.PrimaryBackground;
             this.TitleBarForeground = themeSettings.PrimaryForeground;
-            //this.TitleBarHeight = themeSettings.TitleFontSize * 1;
             this.TitleFontSize = themeSettings.TitleFontSize * 1.2;
         }
 

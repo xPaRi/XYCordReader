@@ -17,29 +17,207 @@ namespace XYCordReader.ViewModels
 {
     public class MainViewModel : NotifyPropertyChangedBase
     {
-        /// <summary>
-        /// Na tomto portu bude probíhat komunikace
-        /// </summary>
-        private static SerialPort? _SerialPort = null;
-
         public MainViewModel() 
         {
             _PortName = PortNameList.Last().ToString();
-            _CurrentXYZ.PropertyChanged += this._CurrentXYZ_PropertyChanged;
+
+            _CoordinateAbs.PropertyChanged += (sender, e) => CoordinateRel_Recalculate();
+            _CoordinateZero.PropertyChanged += (sender, e) => CoordinateRel_Recalculate();
+
+            _StoredCoordinatesList = new StoredCoordinatesList(CoordinateZero);
+
+            _SerialPort = new SerialPort();
+            _SerialPort.DataReceived += new SerialDataReceivedEventHandler(DataReceivedHandler);
         }
 
-        private void _CurrentXYZ_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+        /// <summary>
+        /// Název aplikace
+        /// </summary>
+        public static string Title => "XY CORD READER";
+
+        /// <summary>
+        /// Sada velikostí kroků a rychlostí
+        /// </summary>
+        public StepLengthAndSpeedList StepLengthAndSpeedList
         {
-            if (e.PropertyName == null)
+            get => _StepLengthAndSpeedList;
+            set => _StepLengthAndSpeedList = value;
+        }
+
+        private StepLengthAndSpeedList _StepLengthAndSpeedList = new();
+
+
+        #region Serial Communication
+
+        public static int BaudRate => 115200;
+
+        public static Parity Parity => Parity.None;
+
+        public static int DataBits = 8;
+
+        public static StopBits StopBits = StopBits.One;
+
+        /// <summary>
+        /// Seznam názvů portů
+        /// </summary>
+        public IEnumerable<string> PortNameList => SerialPort.GetPortNames().OrderBy(it => it);
+
+        /// <summary>
+        /// Aktualizuje seznam portů.
+        /// </summary>
+        public ICommand RefreshPortNameList => _RefreshPortNameList ??= new CommandHandler(RefreshPortListCmd, true);
+
+        private ICommand? _RefreshPortNameList;
+        private void RefreshPortListCmd() => OnPropertyChanged(nameof(PortNameList));
+
+
+        /// <summary>
+        /// Na tomto portu bude probíhat komunikace
+        /// </summary>
+        private readonly SerialPort _SerialPort;
+
+        /// <summary>
+        /// Aktuálně vybraný port
+        /// </summary>
+        public string PortName
+        {
+            get => _PortName;
+            set => SetValue(ref _PortName, value);
+        }
+        
+        private string _PortName;
+
+        public bool IsConnected => _SerialPort.IsOpen;
+
+
+        /// <summary>
+        /// Připojení k vybranému portu.
+        /// </summary>
+        public ICommand OpenPort => _OpenPort ??= new CommandHandler(OpenPortCmd, true);
+
+        private ICommand? _OpenPort;
+
+        private void OpenPortCmd()
+        {
+            _SerialPort.PortName = PortName;
+            _SerialPort.BaudRate = BaudRate;
+            _SerialPort.Parity = Parity;
+            _SerialPort.DataBits = DataBits;
+            _SerialPort.StopBits = StopBits;
+            
+            try
+            {
+                _SerialPort.Open();
+
+                PlaySongOpen();
+
+                GetCurrentCoordinatesCmdSpec(false);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex.Message);
+            }
+
+            OnPropertyChanged(nameof(IsConnected));
+        }
+
+
+        /// <summary>
+        /// Odpojení portu.
+        /// </summary>
+        public ICommand ClosePort => _ClosePort ??= new CommandHandler(ClosePortCmd, true);
+
+        private ICommand? _ClosePort;
+        private void ClosePortCmd()
+        {
+            if (_SerialPort == null || !_SerialPort.IsOpen)
                 return;
 
-            if (e.PropertyName.StartsWith("ZERO", StringComparison.InvariantCultureIgnoreCase))
-            {
-                StoreXYZList.SetZero(CurrentXYZ.ZeroX, CurrentXYZ.ZeroY, CurrentXYZ.ZeroZ);
-            }
+            PlaySongClose();
+
+            _SerialPort.Close();
+
+            CoordinateAbs.Clear();
+
+            OnPropertyChanged(nameof(IsConnected));
         }
 
-        #region Serial Reader
+        /// <summary>
+        /// Zahoumování (G28).
+        /// </summary>
+        public ICommand Homing => _Homing ??= new CommandHandler(HomingCmd, true);
+
+        private ICommand? _Homing;
+
+        private void HomingCmd()
+        {
+            if (!_SerialPort.IsOpen)
+                return;
+
+            _SerialPort.WriteLine("G28 W"); //Homing
+            _SerialPort.WriteLine("G92 X0 Y0 Z0"); //Set zero position
+
+            CoordinateAbs.Clear();
+        }
+
+
+        /// <summary>
+        /// Získá aktuální souřadnice XYZ (M114).
+        /// </summary>
+        public ICommand GetCurrentCoordinates => _GetCurrentCoordinates ??= new CommandHandler(GetCurrentCoordinatesCmd, true);
+
+        private ICommand? _GetCurrentCoordinates;
+
+        private void GetCurrentCoordinatesCmd() => GetCurrentCoordinatesCmdSpec(true);
+        private void GetCurrentCoordinatesCmdSpec(bool playSong)
+        {
+            if (!_SerialPort.IsOpen)
+                return;
+
+            if (playSong)
+            {
+                PlaySongGetCoordinate();
+            }
+
+            _SerialPort.WriteLine("M114");
+        }
+
+        private const int TONE_G4 = 392;
+        private const int TONE_E4 = 330;
+        private const int TONE_C4 = 262;
+        private const int TONE_G3 = 169;
+
+        private const int TONE_DELAY = 100;
+
+        private void PlaySongOpen()
+        {
+            if (!_SerialPort.IsOpen)
+                return;
+
+            _SerialPort.WriteLine($"M300 S{TONE_G4} P{TONE_DELAY}"); _SerialPort.WriteLine($"G4 P{TONE_DELAY}");
+            _SerialPort.WriteLine($"M300 S{TONE_E4} P{TONE_DELAY}"); _SerialPort.WriteLine($"G4 P{TONE_DELAY}");
+            _SerialPort.WriteLine($"M300 S{TONE_G3} P{TONE_DELAY}"); _SerialPort.WriteLine($"G4 P{TONE_DELAY}");
+        }
+
+        private void PlaySongClose()
+        {
+            if (!_SerialPort.IsOpen)
+                return;
+
+            _SerialPort.WriteLine($"M300 S{TONE_G3} P{TONE_DELAY}"); _SerialPort.WriteLine($"G4 P{TONE_DELAY}");
+            _SerialPort.WriteLine($"M300 S{TONE_E4} P{TONE_DELAY}"); _SerialPort.WriteLine($"G4 P{TONE_DELAY}");
+            _SerialPort.WriteLine($"M300 S{TONE_G4} P{TONE_DELAY}"); _SerialPort.WriteLine($"G4 P{TONE_DELAY}");
+        }
+
+        private void PlaySongGetCoordinate()
+        {
+            if (!_SerialPort.IsOpen)
+                return;
+
+            _SerialPort.WriteLine($"M300 S{TONE_G3} P{TONE_DELAY*3}"); _SerialPort.WriteLine($"G4 P{TONE_DELAY*3}");
+            _SerialPort.WriteLine($"M300 S{TONE_G3} P{TONE_DELAY}"); _SerialPort.WriteLine($"G4 P{TONE_DELAY}");
+        }
+
 
         /// <summary>
         /// Oddělovače pro čtení dat zaslaných seriovou linkou...
@@ -65,7 +243,7 @@ namespace XYCordReader.ViewModels
                         && decimal.TryParse(aValues[1], CultureInfo.InvariantCulture, out var y)
                         && decimal.TryParse(aValues[2], CultureInfo.InvariantCulture, out var z))
                     {
-                        CurrentXYZ.Set(x, y, z);
+                        CoordinateAbs.Set(x, y, z);
                     }
                 }
             }
@@ -73,65 +251,7 @@ namespace XYCordReader.ViewModels
 
         #endregion
 
-        /// <summary>
-        /// Název aplikace
-        /// </summary>
-        public static string Title => "XYZ COORD READER";
-
-        public static int BaudRate => 115200;
-
-        public static Parity Parity => Parity.None;
-
-        public static int DataBits = 8;
-
-        public static StopBits StopBits = StopBits.One;
-
-        /// <summary>
-        /// Seznam názvů portů
-        /// </summary>
-        public IEnumerable<string> PortNameList => SerialPort.GetPortNames().OrderBy(it=>it);
-
-        /// <summary>
-        /// Sada velikostí kroků a rychlostí
-        /// </summary>
-        public StepLengthAndSpeedList StepLengthAndSpeedList
-        {
-            get => _StepLengthAndSpeedList;
-            set => _StepLengthAndSpeedList = value;
-        }
-
-        private StepLengthAndSpeedList _StepLengthAndSpeedList = new();
-
-        /// <summary>
-        /// Aktuální souřadnice stroje
-        /// </summary>
-        public Coordinate CurrentXYZ
-        { 
-            get => _CurrentXYZ;
-            set => _CurrentXYZ = value;
-        }
-
-        private Coordinate _CurrentXYZ = new();
-
-        /// <summary>
-        /// Aktuálně vybraný port
-        /// </summary>
-        public string PortName
-        {
-            get => _PortName;
-            set
-            {
-                if (value == _PortName) return;
-                
-                _PortName = value;
-
-                OnPropertyChanged(nameof(PortName));
-            }
-        }
-
-        private string _PortName;
-
-        public bool IsConnected => (_SerialPort != null && _SerialPort.IsOpen);
+        #region UI and other
 
         /// <summary>
         /// Povolí nebo zakáže viditelnost ovládání osy Z.
@@ -142,19 +262,7 @@ namespace XYCordReader.ViewModels
             set => SetValue(ref _AllowZ, value);
         }
 
-        private bool _AllowZ = false;
-
-
-        #region Action
-
-        /// <summary>
-        /// Aktualizuje seznam portů.
-        /// </summary>
-        public ICommand RefreshPortNameList => _RefreshPortNameList ??= new CommandHandler(RefreshPortListCmd, true);
-
-        private ICommand? _RefreshPortNameList;
-
-        private void RefreshPortListCmd() => OnPropertyChanged(nameof(PortNameList));
+        private bool _AllowZ = true;
 
 
         /// <summary>
@@ -166,148 +274,6 @@ namespace XYCordReader.ViewModels
 
         private void TryCloseCmd() => System.Windows.Application.Current.Shutdown();
 
-        /// <summary>
-        /// Připojení k vybranému portu.
-        /// </summary>
-        public ICommand ConnectPort => _ConnectPort ??= new CommandHandler(ConnectPortCmd, true);
-
-        private ICommand? _ConnectPort;
-
-        private void ConnectPortCmd() 
-        {
-            _SerialPort = new SerialPort(PortName, BaudRate, Parity, DataBits, StopBits);
-            _SerialPort.DataReceived += new SerialDataReceivedEventHandler(DataReceivedHandler);
-
-            try
-            {
-                _SerialPort.Open();
-
-            }
-            catch (Exception ex)
-            { 
-                Debug.WriteLine(ex.Message);
-            }
-
-            OnPropertyChanged(nameof(IsConnected));
-        }
-
-        /// <summary>
-        /// Odpojení portu.
-        /// </summary>
-        public ICommand DisConnectPort => _DisConnectPort ??= new CommandHandler(DisConnectPortCmd, true);
-
-        private ICommand? _DisConnectPort;
-
-        private void DisConnectPortCmd() 
-        {
-            if (_SerialPort == null || !_SerialPort.IsOpen) 
-                return;
-
-            _SerialPort.Close();
-
-            _SerialPort.DataReceived -= new SerialDataReceivedEventHandler(DataReceivedHandler);
-
-            OnPropertyChanged(nameof(IsConnected));
-        }
-
-        /// <summary>
-        /// Zahoumování (G28).
-        /// </summary>
-        public ICommand Homing => _Homing ??= new CommandHandler(HomingCmd, true);
-
-        private ICommand? _Homing;
-
-        private void HomingCmd() 
-        {
-            if (_SerialPort == null || !_SerialPort.IsOpen) 
-                return;
-
-            _SerialPort.WriteLine("G28 W"); //Homing
-            _SerialPort.WriteLine("G92 X0 Y0 Z0"); //Set zero position
-
-            CurrentXYZ.Homing();
-        }
-
-        /// <summary>
-        /// Získá aktuální souřadnice XYZ (M114).
-        /// </summary>
-        public ICommand GetCurrentXYZ => _GetCurrentXYZ ??= new CommandHandler(GetCurrentXYZCmd, true);
-
-        private ICommand? _GetCurrentXYZ;
-
-        private void GetCurrentXYZCmd()
-        {
-            if (_SerialPort == null || !_SerialPort.IsOpen)
-                return;
-
-            _SerialPort.WriteLine("M114");
-        }
-
-
-        #endregion
-
-        #region Set Zero
-
-        /// <summary>
-        /// Nastaví Zero podle X
-        /// </summary>
-        public ICommand SetZeroX => _SetZeroX ??= new CommandHandler(SetZeroXCmd, true);
-
-        private ICommand? _SetZeroX;
-
-        private void SetZeroXCmd()
-        {
-            CurrentXYZ.SetZeroByAbsX();
-        }
-
-        /// <summary>
-        /// Nastaví Zero podle Y
-        /// </summary>
-        public ICommand SetZeroY => _SetZeroY ??= new CommandHandler(SetZeroYCmd, true);
-
-        private ICommand? _SetZeroY;
-
-        private void SetZeroYCmd()
-        {
-            CurrentXYZ.SetZeroByAbsY();
-        }
-
-        /// <summary>
-        /// Nastaví Zero podle Z
-        /// </summary>
-        public ICommand SetZeroZ => _SetZeroZ ??= new CommandHandler(SetZeroZCmd, true);
-
-        private ICommand? _SetZeroZ;
-
-        private void SetZeroZCmd()
-        {
-            CurrentXYZ.SetZeroByAbsZ();
-        }
-
-        /// <summary>
-        /// Nastaví Zero podle XYZ
-        /// </summary>
-        public ICommand SetZeroXYZ => _SetZeroXYZ ??= new CommandHandler(SetZeroXYZCmd, true);
-
-        private ICommand? _SetZeroXYZ;
-
-        private void SetZeroXYZCmd()
-        {
-            CurrentXYZ.SetZeroByAbsXYZ();
-        }
-
-        /// <summary>
-        /// Nastaví Zero podle XY
-        /// </summary>
-        public ICommand SetZeroXY => _SetZeroXY ??= new CommandHandler(SetZeroXYCmd, true);
-
-        private ICommand? _SetZeroXY;
-
-        private void SetZeroXYCmd()
-        {
-            CurrentXYZ.SetZeroByAbsXY();
-        }
-
         #endregion
 
         #region Moving Command
@@ -317,13 +283,26 @@ namespace XYCordReader.ViewModels
             if (_SerialPort == null || !_SerialPort.IsOpen)
                 return;
 
-            var stepLengthAndSpeed = StepLengthAndSpeedList.FirstOrDefault(it=>it.ModifierKeys == modifier, StepLengthAndSpeedList[0]);
+            var stepLengthAndSpeed = StepLengthAndSpeedList.FirstOrDefault(it => it.ModifierKeys == modifier, StepLengthAndSpeedList[0]);
 
-            CurrentXYZ.Add(stepLengthAndSpeed, directionX, directionY, directionZ);
+            CoordinateAbs.SetWithDirection(stepLengthAndSpeed.StepLength, directionX, directionY, directionZ);
 
-            //Jen pro ladění, ať se futr nejezdí s tiskárnou
-            _SerialPort.WriteLine($"G1 X{CurrentXYZ.AbsX} Y{CurrentXYZ.AbsY} Z{CurrentXYZ.AbsZ} F{stepLengthAndSpeed.Speed}");
+            _SerialPort.WriteLine($"G1 X{CoordinateAbs.X} Y{CoordinateAbs.Y} Z{CoordinateAbs.Z} F{stepLengthAndSpeed.Speed}");
         }
+
+        #endregion
+
+        #region Coordinate Abs
+
+        /// <summary>
+        /// Souřadnice stroje.
+        /// </summary>
+        public CoorXYZ CoordinateAbs
+        {
+            get => _CoordinateAbs;
+        }
+
+        private CoorXYZ _CoordinateAbs = new CoorXYZ(true);
 
         /// <summary>
         /// X+
@@ -381,6 +360,66 @@ namespace XYCordReader.ViewModels
 
         private void ZDownCmd(ModifierKeys modifier) => MoveXYZ(0, 0, -1, modifier);
 
+
+        #endregion
+
+        #region Coordinate Zero 
+
+        /// <summary>
+        /// Souřadnice nulového bodu pro výpočet relativních souřadnic.
+        /// </summary>
+        public CoorXYZ CoordinateZero
+        {
+            get => _CoordinateZero;
+        }
+
+        private CoorXYZ _CoordinateZero = new();
+
+        /// <summary>
+        /// Nastaví Zero podle X
+        /// </summary>
+        public ICommand SetZeroX => _SetZeroX ??= new CommandHandler(SetZeroXCmd, true);
+
+        private ICommand? _SetZeroX;
+
+        private void SetZeroXCmd() => CoordinateZero.X = CoordinateAbs.X;
+
+        /// <summary>
+        /// Nastaví Zero podle Y
+        /// </summary>
+        public ICommand SetZeroY => _SetZeroY ??= new CommandHandler(SetZeroYCmd, true);
+
+        private ICommand? _SetZeroY;
+
+        private void SetZeroYCmd() => CoordinateZero.Y = CoordinateAbs.Y;
+
+        /// <summary>
+        /// Nastaví Zero podle Z
+        /// </summary>
+        public ICommand SetZeroZ => _SetZeroZ ??= new CommandHandler(SetZeroZCmd, true);
+
+        private ICommand? _SetZeroZ;
+        private void SetZeroZCmd() => CoordinateZero.Z = CoordinateAbs.Z;
+
+        #endregion
+
+        #region Coordinate Rel
+
+        /// <summary>
+        /// Relativní souřadnice přepočtené g4 absolutních souřadnic a souřadnic Zero.
+        /// </summary>
+        public CoorXYZ CoordinateRel
+        {
+            get => _CoordinateRel;
+        }
+
+        private CoorXYZ _CoordinateRel = new();
+
+        /// <summary>
+        /// Přepočítá relativní souřadnice
+        /// </summary>
+        private void CoordinateRel_Recalculate() => CoordinateRel.SetWithDecrement(CoordinateAbs, CoordinateZero);
+
         #endregion
 
         #region Coordinate List Action
@@ -388,28 +427,25 @@ namespace XYCordReader.ViewModels
         /// <summary>
         /// Seznam souřadnic.
         /// </summary>
-        public StoreXYZList StoreXYZList
+        public StoredCoordinatesList StoredCoordinatesList
         {
-            get => _StoreXYZList;
+            get => _StoredCoordinatesList;
             set
             {
-                if (_StoreXYZList == value)
+                if (_StoredCoordinatesList == value)
                     return;
 
-                _StoreXYZList = value;
+                _StoredCoordinatesList = value;
 
                 OnPropertyChanged();
             }
         }
 
-        private StoreXYZList _StoreXYZList = [];
+        private StoredCoordinatesList _StoredCoordinatesList;
 
-        private StoreXYZ GetCoordinate()
+        private StoredCoordinates GetCoordinate()
         {
-            var storeXYZ = new StoreXYZ(CurrentXYZ.AbsX, CurrentXYZ.AbsY, CurrentXYZ.AbsZ);
-            storeXYZ.SetZero(CurrentXYZ.ZeroX, CurrentXYZ.ZeroY, CurrentXYZ.ZeroZ);
-
-            return storeXYZ;
+            return new StoredCoordinates(CoordinateAbs, CoordinateZero);
         }
 
         /// <summary>
@@ -419,7 +455,7 @@ namespace XYCordReader.ViewModels
 
         private ICommand? _AddRelCoordinate;
 
-        private void AddRelCoordinateCmd() => StoreXYZList.Add(GetCoordinate());
+        private void AddRelCoordinateCmd() => StoredCoordinatesList.AddCoordinates(GetCoordinate());
 
         /// <summary>
         /// Vloží před aktuání pozici kurzoru do seznamu relativní souřadnice
@@ -428,7 +464,7 @@ namespace XYCordReader.ViewModels
 
         private ICommand? _InsertRelCoordinate;
 
-        private void InsertRelCoordinateCmd() => StoreXYZList.Insert(1, GetCoordinate());
+        private void InsertRelCoordinateCmd() => StoredCoordinatesList.Insert(1, GetCoordinate());
 
         /// <summary>
         /// Odstraní vybrané souřadnice ze seznamu
@@ -437,7 +473,7 @@ namespace XYCordReader.ViewModels
 
         private ICommand? _DeleteRelCoordinate;
 
-        private void DeleteRelCoordinateCmd() => StoreXYZList.RemoveAt(1);
+        private void DeleteRelCoordinateCmd() => StoredCoordinatesList.RemoveAt(1);
 
 
         #endregion

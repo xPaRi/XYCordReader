@@ -67,6 +67,18 @@ namespace XYCordReader.Models
             return true;
         }
 
+        protected bool SetValue(ref string target, string value, string[]? nameArray = null, [CallerMemberName] string? name = null)
+        {
+            if (target.Equals(value))
+                return false;
+
+            target = value;
+
+            OnPropertyChanged(nameArray, name); //změny v bázové proměnné a v závislých proměnných
+
+            return true;
+        }
+
         #endregion
 
     }
