@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -15,6 +16,13 @@ namespace XYCordReader.Models
             this.CoordinateZero = coordinateZero;
 
             this.CoordinateZero.PropertyChanged += this.CoordinateZero_PropertyChanged;
+
+            this.CollectionChanged += this.StoredCoordinatesList_CollectionChanged;
+        }
+
+        private void StoredCoordinatesList_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+        {
+            Debug.WriteLine($"StoredCoordinatesList_CollectionChanged {e.Action}");
         }
 
         private void CoordinateZero_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)

@@ -18,20 +18,25 @@
         Title="{Binding Title}" 
         Height="600" Width="800"
     >
-
+   
     <sf:ChromelessWindow.DataContext>
         <vm:MainViewModel/>
     </sf:ChromelessWindow.DataContext>
 
     <sf:ChromelessWindow.Resources>
         <ResourceDictionary>
+            <vm:MainViewModel x:Key="viewModel"/>
+            
             <gc:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
             <gc:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
 
             <Style x:Key="{x:Type ToolTip}" TargetType="{x:Type ToolTip}">
                 <Setter Property="FontSize" Value="24"/>
                 <Setter Property="HorizontalOffset" Value="20"/>
+                <Setter Property="HorizontalContentAlignment" Value="Left"/>
+                <Setter Property="HorizontalAlignment" Value="Left"/>
             </Style>
+            
         </ResourceDictionary>
     </sf:ChromelessWindow.Resources>
 
@@ -45,7 +50,7 @@
                       ToolTip="Port list."
                       IsEnabled="{Binding IsConnected, Converter={StaticResource InverseBooleanConverter}}"
                       MinWidth="100"/>
-            <Button DockPanel.Dock="Left" Content="_Refresh" 
+            <Button DockPanel.Dock="Left" Content="Q" FontSize="16" FontFamily="Wingdings 3"
                     Command="{Binding RefreshPortNameList}" 
                     ToolTip="Refresh the port list."
                     IsEnabled="{Binding IsConnected, Converter={StaticResource InverseBooleanConverter}}"
@@ -100,8 +105,7 @@
             <Button DockPanel.Dock="Right" Content="Exit" Command="{Binding TryClose}" Margin="5,0,0,0" Padding="20,5" />
             <Button DockPanel.Dock="Right" Content="Export All…" HorizontalAlignment="Right" Margin="5,0" Padding="5"/>
             <Button DockPanel.Dock="Right" Content="Export Relative…" HorizontalAlignment="Right" Margin="5,0" Padding="5"/>
-            <Button DockPanel.Dock="Left" Content="Action" HorizontalAlignment="Left" Padding="5"/>
-            <CheckBox DockPanel.Dock="Left" Content="Allow Z Coordinate" IsChecked="{Binding AllowZ}" VerticalAlignment="Center" Margin="20,0,0,0"/>
+            <CheckBox DockPanel.Dock="Left" Content="Allow Z Coordinate" IsChecked="{Binding AllowZ}" VerticalAlignment="Center"/>
         </DockPanel>
 
         <!-- Center panel -->
@@ -204,19 +208,22 @@
                         </sf:UpDown.Visibility>
                     </sf:UpDown>
 
-                    <Button Content="⏷" ToolTip="Set Zero X by Absolute X." FontSize="30"
+                    <Button Content="6" FontSize="24" FontFamily="Wingdings 3"
+                            ToolTip="Set Zero X by Absolute X." 
                             Grid.Row="2" Grid.Column="1"
                             Command="{Binding SetZeroX}" IsEnabled="{Binding IsConnected}"
                             Padding="0" Margin="6"
                             />
 
-                    <Button Content="⏷" ToolTip="Set Zero Y by Absolute Y." FontSize="30"
+                    <Button Content="6" FontSize="24" FontFamily="Wingdings 3"
+                            ToolTip="Set Zero Y by Absolute Y." 
                             Grid.Row="2" Grid.Column="2" 
                             Command="{Binding SetZeroY}" IsEnabled="{Binding IsConnected}"
                             Padding="0" Margin="6"
                             />
 
-                    <Button Content="⏷" ToolTip="Set Zero Z by Absolute Z." FontSize="30"
+                    <Button Content="6" FontSize="24" FontFamily="Wingdings 3"
+                            ToolTip="Set Zero Z by Absolute Z."
                             Grid.Row="2" Grid.Column="3"
                             Command="{Binding SetZeroZ}" IsEnabled="{Binding IsConnected}"
                             Padding="0" Margin="6"
@@ -231,7 +238,6 @@
                                 </Binding.ConverterParameter>
                             </Binding>
                         </Button.Visibility>
-
                     </Button>
 
                     <sf:UpDown x:Name="ZeroX" Grid.Row="3" Grid.Column="1" Value="{Binding CoordinateZero.X}" IsEnabled="True"/>
@@ -247,7 +253,6 @@
                                 </Binding.ConverterParameter>
                             </Binding>
                         </sf:UpDown.Visibility>
-
                     </sf:UpDown>
 
                     <sf:UpDown x:Name="RelX" Grid.Row="4" Grid.Column="1" Value="{Binding CoordinateRel.X, Mode=OneWay}" IsReadOnly="True" Focusable="False"/>
@@ -264,92 +269,162 @@
                             </Binding>
                         </sf:UpDown.Visibility>
                     </sf:UpDown>
+
+                    <Button Content="Ù" FontSize="30" FontFamily="Wingdings 3"
+                            ToolTip="Move to left (X-). Hotkey: [Left Arrow]"
+                            Command="{Binding XDown}" IsEnabled="{Binding IsConnected}"
+                            Grid.Row="5" Grid.Column="1" 
+                            Padding="0" Margin="6"
+                            />
+                    <Button Content="Ú" FontSize="30" FontFamily="Wingdings 3"
+                            ToolTip="Move to right (X+). Hotkey: [Right Arrow]" 
+                            Command="{Binding XUp}" IsEnabled="{Binding IsConnected}"
+                            Grid.Row="6" Grid.Column="1" 
+                            Padding="0" Margin="6"
+                            />
+
+                    <Button Content="Þ" FontSize="30" FontFamily="Wingdings 3"
+                            ToolTip="Move to bottom (Y+). Hotkey: [Up Arrow]"
+                            Command="{Binding YUp}" IsEnabled="{Binding IsConnected}"
+                            Grid.Row="5" Grid.Column="2" 
+                            Padding="0" Margin="6"
+                            />
+                    <Button Content="ß" FontSize="30" FontFamily="Wingdings 3"
+                            ToolTip="Move to front (Y-). Hotkey: [Down Arrow]"
+                            Command="{Binding YDown}" IsEnabled="{Binding IsConnected}"
+                            Grid.Row="6" Grid.Column="2" 
+                            Padding="0" Margin="6"
+                            />
+
+                    <Button Content="Û" FontSize="30" FontFamily="Wingdings 3"
+                            ToolTip="Move to up (Z+). Hotkey: [Page Up]"
+                            Command="{Binding ZUp}" IsEnabled="{Binding IsConnected}"
+                            Grid.Row="5" Grid.Column="3" 
+                            Padding="0" Margin="6"
+                            >
+                        <Button.Visibility>
+                            <Binding Path = "AllowZ" Converter="{StaticResource BooleanToVisibilityConverter}">
+                                <Binding.ConverterParameter>
+                                    <x:Array Type = "{x:Type sys:Object}">
+                                        <Visibility>Visible</Visibility>
+                                        <Visibility>Collapsed</Visibility>
+                                    </x:Array>
+                                </Binding.ConverterParameter>
+                            </Binding>
+                        </Button.Visibility>
+                    </Button>
+                    <Button Content="Ü" FontSize="30" FontFamily="Wingdings 3"
+                            ToolTip="Move to down (Z-). Hotkey: [Page Down]"
+                            Command="{Binding ZDown}" IsEnabled="{Binding IsConnected}"
+                            Grid.Row="6" Grid.Column="3" 
+                            Padding="0" Margin="6"
+                            >
+                        <Button.Visibility>
+                            <Binding Path = "AllowZ" Converter="{StaticResource BooleanToVisibilityConverter}">
+                                <Binding.ConverterParameter>
+                                    <x:Array Type = "{x:Type sys:Object}">
+                                        <Visibility>Visible</Visibility>
+                                        <Visibility>Collapsed</Visibility>
+                                    </x:Array>
+                                </Binding.ConverterParameter>
+                            </Binding>
+                        </Button.Visibility>
+
+                    </Button>
                 </Grid>
-
-                <Grid DockPanel.Dock="Top" VerticalAlignment="Center" Margin="0,10,0,0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition />
-                        <ColumnDefinition />
-                        <ColumnDefinition />
-                    </Grid.ColumnDefinitions>
-
-                    <Grid.RowDefinitions>
-                        <RowDefinition />
-                    </Grid.RowDefinitions>
-
-                    <Button Content="INSERT&#10;Relative&#10;coordinate" ToolTip=" "
-                            Grid.Row="0" Grid.Column="0"
-                            Command="{Binding InsertRelCoordinate}" IsEnabled="{Binding IsConnected}"
-                            TextBlock.TextAlignment="Center"
-                            Padding="10,5" Margin="5"
-                            />
-
-                    <Button Content="ADD&#10;Relative&#10;coordinate" ToolTip=" "
-                            Grid.Row="0" Grid.Column="1"
-                            Command="{Binding AddRelCoordinate}" IsEnabled="{Binding IsConnected}"
-                            TextBlock.TextAlignment="Center"
-                            Padding="10,5" Margin="5"
-                            />
-
-                    <Button Content="DELETE&#10;Relative&#10;coordinate" ToolTip=" "
-                            Grid.Row="0" Grid.Column="2"
-                            Command="{Binding DeleteRelCoordinate}" IsEnabled="{Binding IsConnected}"
-                            TextBlock.TextAlignment="Center"
-                            Padding="10,5" Margin="5"
-                            />
-
-                </Grid>
-                    
 
             </DockPanel>
 
             <!-- Coordinates -->
             <DockPanel DockPanel.Dock="Left">
-                <sf:SfDataGrid ItemsSource="{Binding StoredCoordinatesList, Mode=OneWay}"
-                                   DockPanel.Dock="Bottom"
-                                   AutoGenerateColumns="False"
-                                   AllowEditing="False"
-                                   ColumnSizer="Star"
-                                   SelectionMode="Extended"
-                                   AllowSorting="False"
-                                   >
 
-                    <sf:SfDataGrid.StackedHeaderRows>
-                        <sf:StackedHeaderRow>
-                            <sf:StackedHeaderRow.StackedColumns>
-                                <sf:StackedColumn ChildColumns="AbsCoordinate.X,AbsCoordinate.Y,AbsCoordinate.Z" HeaderText="Absolute"/>
-                                <sf:StackedColumn ChildColumns="RelCoordinate.X,RelCoordinate.Y,RelCoordinate.Z" HeaderText="Relative"/>
-                            </sf:StackedHeaderRow.StackedColumns>
-                        </sf:StackedHeaderRow>
-                    </sf:SfDataGrid.StackedHeaderRows>
+                <!-- Buttons -->
+                <DockPanel DockPanel.Dock="Bottom" Margin="0,5,0,0">
+                    <Button Content="INSERT"
+                            ToolTip="Insert current coordinates.&#10;Hotkey: [Ctrl] + [Numeric Multiply]"
+                            DockPanel.Dock="Left"
+                            Command="{Binding InsertRelCoordinate}"
+                            TextBlock.TextAlignment="Center"
+                            Padding="10,10" Margin="0,5,5,2" 
+                            />
+
+                    <Button Content="APPEND"
+                            ToolTip="Add current coordinates.&#10;Hotkey: [Numeric Add]"
+                            DockPanel.Dock="Left"
+                            Command="{Binding AddRelCoordinate}" 
+                            TextBlock.TextAlignment="Center"
+                            Padding="10,10" Margin="5,5,5,2"
+                            />
+
+                    <Button Content="DELETE" 
+                            ToolTip="Delete selected coordinates.&#10;Hotkey: [Numeric Subtract]"
+                            DockPanel.Dock="Left"
+                            Click="DeleteRelCoordinate_Click"
+                            TextBlock.TextAlignment="Center"
+                            Padding="10,10" Margin="5,5,5,2"
+                            HorizontalAlignment="Left"
+                            />
+                    
+                    <Button Content="GOTO XY" 
+                            ToolTip="Move to selected coordinates X;Y.&#10;Hotkey: [None | Shift | Ctrl] + [Numeric Multiply]"
+                            DockPanel.Dock="Right"
+                            Command="{Binding GotoXY}" IsEnabled="{Binding IsConnected}"
+                            TextBlock.TextAlignment="Center"
+                            Padding="10,10" Margin="5,5,2,2" 
+                            HorizontalAlignment="Right"
+                            />
+                </DockPanel>
+
+                <!-- Coordinates List -->
+                <DockPanel DockPanel.Dock="Top">
+                    <sf:SfDataGrid x:Name="CoordinatesList"
+                        ItemsSource="{Binding StoredCoordinatesList, Mode=OneWay}"
+                        SelectedIndex="{Binding StoredCoordinatesSelectedIndex}"
+                        DockPanel.Dock="Bottom"
+                        AutoGenerateColumns="False"
+                        AllowEditing="False"
+                        ColumnSizer="Star"
+                        SelectionMode="Extended"
+                        AllowSorting="False"
+                        >
+
+                        <sf:SfDataGrid.StackedHeaderRows>
+                            <sf:StackedHeaderRow>
+                                <sf:StackedHeaderRow.StackedColumns>
+                                    <sf:StackedColumn ChildColumns="AbsCoordinate.X,AbsCoordinate.Y,AbsCoordinate.Z" HeaderText="Absolute"/>
+                                    <sf:StackedColumn ChildColumns="RelCoordinate.X,RelCoordinate.Y,RelCoordinate.Z" HeaderText="Relative"/>
+                                </sf:StackedHeaderRow.StackedColumns>
+                            </sf:StackedHeaderRow>
+                        </sf:SfDataGrid.StackedHeaderRows>
 
 
-                    <sf:SfDataGrid.Columns>
-                        <sf:GridNumericColumn MappingName="AbsCoordinate.X" HeaderText="X" 
-                                                  NumberDecimalDigits="2"
-                                                  />
-                        <sf:GridNumericColumn MappingName="AbsCoordinate.Y" HeaderText="Y"
-                                                  NumberDecimalDigits="2"
-                                                  />
-                        <sf:GridNumericColumn MappingName="AbsCoordinate.Z" HeaderText="Z"
-                                                  NumberDecimalDigits="2"
-                                                  IsHidden="{Binding AllowZ, Converter={StaticResource InverseBooleanConverter}}"
-                                                  />
-                        <sf:GridNumericColumn MappingName="RelCoordinate.X" HeaderText="X" 
-                                                  MinValue="-999" MaxValue="999" 
-                                                  AllowNullValue="False" 
-                                                  NumberDecimalDigits="2"
-                                                  />
-                        <sf:GridNumericColumn MappingName="RelCoordinate.Y" HeaderText="Y"
-                                                  NumberDecimalDigits="2"
-                                                  />
-                        <sf:GridNumericColumn MappingName="RelCoordinate.Z" HeaderText="Z"
-                                                  NumberDecimalDigits="2"
-                                                  IsHidden="{Binding AllowZ, Converter={StaticResource InverseBooleanConverter}}"
-                                                  />
+                        <sf:SfDataGrid.Columns>
+                            <sf:GridNumericColumn MappingName="AbsCoordinate.X" HeaderText="X" 
+                                                      NumberDecimalDigits="2"
+                                                      />
+                            <sf:GridNumericColumn MappingName="AbsCoordinate.Y" HeaderText="Y"
+                                                      NumberDecimalDigits="2"
+                                                      />
+                            <sf:GridNumericColumn MappingName="AbsCoordinate.Z" HeaderText="Z"
+                                                      NumberDecimalDigits="2"
+                                                      IsHidden="{Binding AllowZ, Converter={StaticResource InverseBooleanConverter}}"
+                                                      />
+                            <sf:GridNumericColumn MappingName="RelCoordinate.X" HeaderText="X" 
+                                                      MinValue="-999" MaxValue="999" 
+                                                      AllowNullValue="False" 
+                                                      NumberDecimalDigits="2"
+                                                      />
+                            <sf:GridNumericColumn MappingName="RelCoordinate.Y" HeaderText="Y"
+                                                      NumberDecimalDigits="2"
+                                                      />
+                            <sf:GridNumericColumn MappingName="RelCoordinate.Z" HeaderText="Z"
+                                                      NumberDecimalDigits="2"
+                                                      IsHidden="{Binding AllowZ, Converter={StaticResource InverseBooleanConverter}}"
+                                                      />
 
-                    </sf:SfDataGrid.Columns>
-                </sf:SfDataGrid>
+                        </sf:SfDataGrid.Columns>
+                    </sf:SfDataGrid>
+                </DockPanel>
             </DockPanel>
 
 

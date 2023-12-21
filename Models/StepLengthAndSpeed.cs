@@ -13,7 +13,7 @@ namespace XYCordReader.Models
     /// </summary>
     public class StepLengthAndSpeed : NotifyPropertyChangedBase
     {
-        public StepLengthAndSpeed(ModifierKeys modifierKeys, decimal stepLength, int speed)
+        public StepLengthAndSpeed(string modifierKeys, decimal stepLength, int speed)
         {
 			_ModifierKeys = modifierKeys;
             _StepLength = stepLength;
@@ -25,7 +25,7 @@ namespace XYCordReader.Models
         /// <summary>
         /// Název sady.
         /// </summary>
-        public ModifierKeys ModifierKeys
+        public string ModifierKeys
 		{
 			get => _ModifierKeys;
 			set
@@ -39,7 +39,7 @@ namespace XYCordReader.Models
 			}
 		}
 
-		private ModifierKeys _ModifierKeys;
+		private string _ModifierKeys;
 
 
 		/// <summary>

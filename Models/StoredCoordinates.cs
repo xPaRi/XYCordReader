@@ -31,10 +31,11 @@ namespace XYCordReader.Models
         /// </summary>
         public CoorXYZ RelCoordinate { get; private set; }
 
-
         public void SetZero(CoorXYZ zeroCoordinate)
         {
             RelCoordinate.SetWithDecrement(AbsCoordinate, zeroCoordinate);
         }
+
+        public override string ToString() => $"StoredCoordinates Asb: {AbsCoordinate}; Rel:{RelCoordinate}";
     }
 }

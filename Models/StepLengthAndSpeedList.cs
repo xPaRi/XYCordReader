@@ -17,10 +17,10 @@ namespace XYCordReader.Models
 
         public void AddDefault()
         {
-            this.Add(new StepLengthAndSpeed(ModifierKeys.None,                           1.00m,  500));
-            this.Add(new StepLengthAndSpeed(ModifierKeys.Control,                        0.10m,  500));
-            this.Add(new StepLengthAndSpeed(ModifierKeys.Shift,                         10.00m, 5000));
-            this.Add(new StepLengthAndSpeed(ModifierKeys.Control | ModifierKeys.Shift,   0.05m,  200));
+            this.Add(new StepLengthAndSpeed(ModifierKeys.None.ToString(),                             1.00m,  500));
+            this.Add(new StepLengthAndSpeed(ModifierKeys.Control.ToString(),                          0.10m,  500));
+            this.Add(new StepLengthAndSpeed(ModifierKeys.Shift.ToString(),                           10.00m, 5000));
+            this.Add(new StepLengthAndSpeed((ModifierKeys.Control | ModifierKeys.Shift).ToString(),   0.05m,  200));
         }
 
     }

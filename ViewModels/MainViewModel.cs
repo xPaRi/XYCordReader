@@ -11,6 +11,8 @@ using static System.Runtime.InteropServices.JavaScript.JSType;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
+using System.Collections.ObjectModel;
+using Syncfusion.Data.Extensions;
 
 
 namespace XYCordReader.ViewModels
@@ -109,9 +111,7 @@ namespace XYCordReader.ViewModels
             {
                 _SerialPort.Open();
 
-                PlaySongOpen();
-
-                GetCurrentCoordinatesCmdSpec(false);
+                GetCurrentCoordinatesCmd();
             }
             catch (Exception ex)
             {
@@ -132,8 +132,6 @@ namespace XYCordReader.ViewModels
         {
             if (_SerialPort == null || !_SerialPort.IsOpen)
                 return;
-
-            PlaySongClose();
 
             _SerialPort.Close();
 
@@ -168,56 +166,13 @@ namespace XYCordReader.ViewModels
 
         private ICommand? _GetCurrentCoordinates;
 
-        private void GetCurrentCoordinatesCmd() => GetCurrentCoordinatesCmdSpec(true);
-        private void GetCurrentCoordinatesCmdSpec(bool playSong)
+        private void GetCurrentCoordinatesCmd()
         {
             if (!_SerialPort.IsOpen)
                 return;
-
-            if (playSong)
-            {
-                PlaySongGetCoordinate();
-            }
 
             _SerialPort.WriteLine("M114");
         }
-
-        private const int TONE_G4 = 392;
-        private const int TONE_E4 = 330;
-        private const int TONE_C4 = 262;
-        private const int TONE_G3 = 169;
-
-        private const int TONE_DELAY = 100;
-
-        private void PlaySongOpen()
-        {
-            if (!_SerialPort.IsOpen)
-                return;
-
-            _SerialPort.WriteLine($"M300 S{TONE_G4} P{TONE_DELAY}"); _SerialPort.WriteLine($"G4 P{TONE_DELAY}");
-            _SerialPort.WriteLine($"M300 S{TONE_E4} P{TONE_DELAY}"); _SerialPort.WriteLine($"G4 P{TONE_DELAY}");
-            _SerialPort.WriteLine($"M300 S{TONE_G3} P{TONE_DELAY}"); _SerialPort.WriteLine($"G4 P{TONE_DELAY}");
-        }
-
-        private void PlaySongClose()
-        {
-            if (!_SerialPort.IsOpen)
-                return;
-
-            _SerialPort.WriteLine($"M300 S{TONE_G3} P{TONE_DELAY}"); _SerialPort.WriteLine($"G4 P{TONE_DELAY}");
-            _SerialPort.WriteLine($"M300 S{TONE_E4} P{TONE_DELAY}"); _SerialPort.WriteLine($"G4 P{TONE_DELAY}");
-            _SerialPort.WriteLine($"M300 S{TONE_G4} P{TONE_DELAY}"); _SerialPort.WriteLine($"G4 P{TONE_DELAY}");
-        }
-
-        private void PlaySongGetCoordinate()
-        {
-            if (!_SerialPort.IsOpen)
-                return;
-
-            _SerialPort.WriteLine($"M300 S{TONE_G3} P{TONE_DELAY*3}"); _SerialPort.WriteLine($"G4 P{TONE_DELAY*3}");
-            _SerialPort.WriteLine($"M300 S{TONE_G3} P{TONE_DELAY}"); _SerialPort.WriteLine($"G4 P{TONE_DELAY}");
-        }
-
 
         /// <summary>
         /// Oddělovače pro čtení dat zaslaných seriovou linkou...
@@ -278,9 +233,9 @@ namespace XYCordReader.ViewModels
 
         #region Moving Command
 
-        private void MoveXYZ(int directionX, int directionY, int directionZ, ModifierKeys modifier)
+        private void MoveXYZ(int directionX, int directionY, int directionZ, string modifier)
         {
-            if (_SerialPort == null || !_SerialPort.IsOpen)
+            if (!_SerialPort.IsOpen)
                 return;
 
             var stepLengthAndSpeed = StepLengthAndSpeedList.FirstOrDefault(it => it.ModifierKeys == modifier, StepLengthAndSpeedList[0]);
@@ -289,6 +244,34 @@ namespace XYCordReader.ViewModels
 
             _SerialPort.WriteLine($"G1 X{CoordinateAbs.X} Y{CoordinateAbs.Y} Z{CoordinateAbs.Z} F{stepLengthAndSpeed.Speed}");
         }
+
+
+        /// <summary>
+        /// Goto Selected XY
+        /// </summary>
+        public ICommand GotoXY => _GotoXY ??= new CommandHandlerWithModifiers(modifier => GotoXYCmd(modifier), true);
+
+        private ICommand? _GotoXY;
+
+        private void GotoXYCmd(string modifier) 
+        {
+            if (!_SerialPort.IsOpen)
+                return;
+
+            var index = StoredCoordinatesSelectedIndex;
+
+            if (index < 0) 
+                return;
+
+            var coordinates = StoredCoordinatesList[index].AbsCoordinate;
+
+            CoordinateAbs.Set(coordinates);
+
+            var stepLengthAndSpeed = StepLengthAndSpeedList.FirstOrDefault(it => it.ModifierKeys == modifier, StepLengthAndSpeedList[0]);
+
+            _SerialPort.WriteLine($"G1 X{coordinates.X} Y{coordinates.Y} F{stepLengthAndSpeed.Speed}");
+        }
+
 
         #endregion
 
@@ -311,7 +294,7 @@ namespace XYCordReader.ViewModels
 
         private ICommand? _XUp;
 
-        private void XUpCmd(ModifierKeys modifier) => MoveXYZ(1, 0, 0, modifier);
+        private void XUpCmd(string modifier) => MoveXYZ(1, 0, 0, modifier);
 
         /// <summary>
         /// X-
@@ -320,7 +303,7 @@ namespace XYCordReader.ViewModels
 
         private ICommand? _XDown;
 
-        private void XDownCmd(ModifierKeys modifier) => MoveXYZ(-1, 0, 0, modifier);
+        private void XDownCmd(string modifier) => MoveXYZ(-1, 0, 0, modifier);
 
 
         /// <summary>
@@ -330,7 +313,7 @@ namespace XYCordReader.ViewModels
 
         private ICommand? _YUp;
 
-        private void YUpCmd(ModifierKeys modifier) => MoveXYZ(0, 1, 0, modifier);
+        private void YUpCmd(string modifier) => MoveXYZ(0, 1, 0, modifier);
 
         /// <summary>
         /// Y-
@@ -339,7 +322,7 @@ namespace XYCordReader.ViewModels
 
         private ICommand? _YDown;
 
-        private void YDownCmd(ModifierKeys modifier) => MoveXYZ(0, -1, 0, modifier);
+        private void YDownCmd(string modifier) => MoveXYZ(0, -1, 0, modifier);
 
 
         /// <summary>
@@ -349,7 +332,7 @@ namespace XYCordReader.ViewModels
 
         private ICommand? _ZUp;
 
-        private void ZUpCmd(ModifierKeys modifier) => MoveXYZ(0, 0, 1, modifier);
+        private void ZUpCmd(string modifier) => MoveXYZ(0, 0, 1, modifier);
 
         /// <summary>
         /// Z-
@@ -358,7 +341,7 @@ namespace XYCordReader.ViewModels
 
         private ICommand? _ZDown;
 
-        private void ZDownCmd(ModifierKeys modifier) => MoveXYZ(0, 0, -1, modifier);
+        private void ZDownCmd(string modifier) => MoveXYZ(0, 0, -1, modifier);
 
 
         #endregion
@@ -425,6 +408,17 @@ namespace XYCordReader.ViewModels
         #region Coordinate List Action
 
         /// <summary>
+        /// Aktuálně vybraný řádek v seznamu souřadnic
+        /// </summary>
+        public int StoredCoordinatesSelectedIndex
+        {
+            get => _StoredCoordinatesSelectedIndex;
+            set => SetValue(ref _StoredCoordinatesSelectedIndex, value);
+        }
+
+        private int _StoredCoordinatesSelectedIndex = -1;
+
+        /// <summary>
         /// Seznam souřadnic.
         /// </summary>
         public StoredCoordinatesList StoredCoordinatesList
@@ -443,6 +437,25 @@ namespace XYCordReader.ViewModels
 
         private StoredCoordinatesList _StoredCoordinatesList;
 
+        /// <summary>
+        /// Seznam vybraných souřadnic.
+        /// </summary>
+        public StoredCoordinatesList StoredCoordinatesSelection
+        {
+            get => _StoredCoordinatesSelection;
+            set
+            {
+                _StoredCoordinatesSelection = value;
+
+                Debug.WriteLine($"Selected: {_StoredCoordinatesSelection.Count}");
+
+                OnPropertyChanged();
+            }
+        }
+
+        private StoredCoordinatesList _StoredCoordinatesSelection = new StoredCoordinatesList(new CoorXYZ());
+
+
         private StoredCoordinates GetCoordinate()
         {
             return new StoredCoordinates(CoordinateAbs, CoordinateZero);
@@ -455,7 +468,12 @@ namespace XYCordReader.ViewModels
 
         private ICommand? _AddRelCoordinate;
 
-        private void AddRelCoordinateCmd() => StoredCoordinatesList.AddCoordinates(GetCoordinate());
+        private void AddRelCoordinateCmd()
+        {
+            StoredCoordinatesList.AddCoordinates(GetCoordinate());
+
+            StoredCoordinatesSelectedIndex = StoredCoordinatesList.Count - 1;
+        }
 
         /// <summary>
         /// Vloží před aktuání pozici kurzoru do seznamu relativní souřadnice
@@ -463,17 +481,53 @@ namespace XYCordReader.ViewModels
         public ICommand InsertRelCoordinate => _InsertRelCoordinate ??= new CommandHandler(InsertRelCoordinateCmd, true);
 
         private ICommand? _InsertRelCoordinate;
+        
+        public void InsertRelCoordinateCmd()
+        {
+            var index = StoredCoordinatesSelectedIndex;
 
-        private void InsertRelCoordinateCmd() => StoredCoordinatesList.Insert(1, GetCoordinate());
+            if (index < 0)
+            {
+                AddRelCoordinateCmd();
+                return;
+            }
+
+            StoredCoordinatesList.Insert(index, GetCoordinate());
+
+            StoredCoordinatesSelectedIndex = index;            
+        }
 
         /// <summary>
         /// Odstraní vybrané souřadnice ze seznamu
         /// </summary>
-        public ICommand DeleteRelCoordinate => _DeleteRelCoordinate ??= new CommandHandler(DeleteRelCoordinateCmd, true);
+        public void DeleteRelCoordinateSelectedItemsCmd(ObservableCollection<object> storedCoordinates)
+        {
+            if (storedCoordinates.Count <= 0)
+                return;
 
-        private ICommand? _DeleteRelCoordinate;
+            var index = StoredCoordinatesSelectedIndex;
 
-        private void DeleteRelCoordinateCmd() => StoredCoordinatesList.RemoveAt(1);
+            storedCoordinates.Cast<StoredCoordinates>()
+                .ToList() //jinak to vyletí na nemožnosti enumerovat odstraňované položky
+                .ForEach(it => StoredCoordinatesList.Remove(it));
+
+            if (StoredCoordinatesList.Count <= 0)
+                return;
+
+            if (index >= StoredCoordinatesList.Count)
+            {
+                StoredCoordinatesSelectedIndex = StoredCoordinatesList.Count - 1;
+                return;
+            }
+
+            if (index < 0)
+            {
+                StoredCoordinatesSelectedIndex = 0;
+                return;
+            }
+
+            StoredCoordinatesSelectedIndex = index;
+        }
 
 
         #endregion

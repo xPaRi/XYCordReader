@@ -11,9 +11,11 @@ using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using XYCordReader.Models;
 using XYCordReader.ViewModels;
 
 namespace XYCordReader
@@ -97,31 +99,46 @@ namespace XYCordReader
             {
                 //X
                 case Key.Left:
-                    dataContext.XDown.Execute(Keyboard.Modifiers);
+                    dataContext.XDown.Execute(Keyboard.Modifiers.ToString());
                     e.Handled = true;
                     break;
                 case Key.Right:
-                    dataContext.XUp.Execute(Keyboard.Modifiers);
+                    dataContext.XUp.Execute(Keyboard.Modifiers.ToString());
                     e.Handled = true;
                     break;
 
                 //Y
                 case Key.Up:
-                    dataContext.YUp.Execute(Keyboard.Modifiers);
+                    dataContext.YUp.Execute(Keyboard.Modifiers.ToString());
                     e.Handled = true;
                     break;
                 case Key.Down:
-                    dataContext.YDown.Execute(Keyboard.Modifiers);
+                    dataContext.YDown.Execute(Keyboard.Modifiers.ToString());
                     e.Handled = true;
                     break;
 
                 //Z
                 case Key.PageUp:
-                    dataContext.ZUp.Execute(Keyboard.Modifiers);
+                    dataContext.ZUp.Execute(Keyboard.Modifiers.ToString());
                     e.Handled = true;
                     break;
                 case Key.PageDown:
-                    dataContext.ZDown.Execute(Keyboard.Modifiers);
+                    dataContext.ZDown.Execute(Keyboard.Modifiers.ToString());
+                    e.Handled = true;
+                    break;
+
+                case Key.Subtract when Keyboard.Modifiers == ModifierKeys.None:
+                    DeleteRelCoordinate_Click(sender, null);
+                    break;
+                case Key.Add when Keyboard.Modifiers == ModifierKeys.Control:
+                    dataContext.InsertRelCoordinate.Execute(true);
+                    break;
+                case Key.Add when Keyboard.Modifiers==ModifierKeys.None:
+                    dataContext.AddRelCoordinate.Execute(true);
+                    break;
+
+                case Key.Multiply:
+                    dataContext.GotoXY.Execute(Keyboard.Modifiers.ToString());
                     e.Handled = true;
                     break;
             }
@@ -129,6 +146,13 @@ namespace XYCordReader
             Debug.WriteLine($"{Keyboard.Modifiers}; {e.Key}; {e.KeyStates}; {e.SystemKey}");
         }
 
+        private void DeleteRelCoordinate_Click(object sender, RoutedEventArgs? e)
+        {
+            if (this.DataContext is not MainViewModel dataContext)
+                return;
+
+            dataContext.DeleteRelCoordinateSelectedItemsCmd(CoordinatesList.SelectedItems);
+        }
 
     }
 }

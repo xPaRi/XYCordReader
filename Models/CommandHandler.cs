@@ -50,10 +50,10 @@ namespace XYCordReader.Models
 
     public class CommandHandlerWithModifiers : ICommand
     {
-        private Action<ModifierKeys> _Action;
+        private Action<string> _Action;
         private bool _CanExecute = true;
 
-        public CommandHandlerWithModifiers(Action<ModifierKeys> action, bool canExecute)
+        public CommandHandlerWithModifiers(Action<string> action, bool canExecute)
         {
             _Action = action;
             _CanExecute = canExecute;
@@ -63,7 +63,7 @@ namespace XYCordReader.Models
 
         public event EventHandler? CanExecuteChanged;
 
-        public void Execute(object parameter) => _Action((ModifierKeys)parameter);
+        public void Execute(object parameter) => _Action((string)parameter);
     }
 
 }

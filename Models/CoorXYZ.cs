@@ -166,6 +166,8 @@ namespace XYCordReader.Models
 			Z += directionZ * delta;
         }
 
-		#endregion
-	}
+        public override string ToString() => $"[X={X}; Y={Y}; Z={Z}]";
+
+        #endregion
+    }
 }
