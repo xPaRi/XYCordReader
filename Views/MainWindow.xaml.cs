@@ -1,7 +1,9 @@
-﻿using Syncfusion.SfSkinManager;
+﻿using Microsoft.Win32;
+using Syncfusion.SfSkinManager;
 using Syncfusion.Themes.MaterialLightBlue.WPF;
 using Syncfusion.Windows.Shared;
 using System.Diagnostics;
+using System.Reflection;
 using System.Text;
 using System.Transactions;
 using System.Windows;
@@ -17,6 +19,7 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using XYCordReader.Models;
 using XYCordReader.ViewModels;
+using IDEA.UniLib.Extensions;
 
 namespace XYCordReader
 {
@@ -35,7 +38,21 @@ namespace XYCordReader
 
             this.Loaded += this.MainWindow_Loaded;
 
+            this.Closed += this.MainWindow_Closed;
         }
+
+        const string REG_POSITION = "Position";
+
+        private void MainWindow_Closed(object? sender, EventArgs e)
+        {
+            CurrentDataContext?.AppRegistry.SetData(REG_POSITION, new System.Drawing.Rectangle((int)this.Left, (int)this.Top, (int)this.Width, (int)this.Height));
+        }
+
+        #region Helpers
+
+        private MainViewModel? CurrentDataContext => this.DataContext as MainViewModel;
+
+        #endregion
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
@@ -50,6 +67,16 @@ namespace XYCordReader
             SettingUpDownButton(ZeroX);
             SettingUpDownButton(ZeroY);
             SettingUpDownButton(ZeroZ);
+
+            var rectangle = CurrentDataContext?.AppRegistry.GetData(REG_POSITION, new System.Drawing.Rectangle((int)this.Left, (int)this.Top, (int)this.Width, (int)this.Height));
+
+            if (rectangle != null )
+            {
+                this.Left = rectangle.Value.X;
+                this.Top = rectangle.Value.Y;
+                this.Width = rectangle.Value.Width;
+                this.Height = rectangle.Value.Height;
+            }
         }
 
         private static void SettingUpDownButton(UpDown control, double? fontSize = null)
@@ -92,38 +119,38 @@ namespace XYCordReader
 
         private void MainWindow_KeyDown(object sender, KeyEventArgs e)
         {
-            if (this.DataContext is not MainViewModel dataContext)
+            if (CurrentDataContext == null) 
                 return;
 
             switch(e.Key)
             {
                 //X
                 case Key.Left:
-                    dataContext.XDown.Execute(Keyboard.Modifiers.ToString());
+                    CurrentDataContext.XDown.Execute(Keyboard.Modifiers.ToString());
                     e.Handled = true;
                     break;
                 case Key.Right:
-                    dataContext.XUp.Execute(Keyboard.Modifiers.ToString());
+                    CurrentDataContext.XUp.Execute(Keyboard.Modifiers.ToString());
                     e.Handled = true;
                     break;
 
                 //Y
                 case Key.Up:
-                    dataContext.YUp.Execute(Keyboard.Modifiers.ToString());
+                    CurrentDataContext.YUp.Execute(Keyboard.Modifiers.ToString());
                     e.Handled = true;
                     break;
                 case Key.Down:
-                    dataContext.YDown.Execute(Keyboard.Modifiers.ToString());
+                    CurrentDataContext.YDown.Execute(Keyboard.Modifiers.ToString());
                     e.Handled = true;
                     break;
 
                 //Z
                 case Key.PageUp:
-                    dataContext.ZUp.Execute(Keyboard.Modifiers.ToString());
+                    CurrentDataContext.ZUp.Execute(Keyboard.Modifiers.ToString());
                     e.Handled = true;
                     break;
                 case Key.PageDown:
-                    dataContext.ZDown.Execute(Keyboard.Modifiers.ToString());
+                    CurrentDataContext.ZDown.Execute(Keyboard.Modifiers.ToString());
                     e.Handled = true;
                     break;
 
@@ -131,14 +158,14 @@ namespace XYCordReader
                     DeleteRelCoordinate_Click(sender, null);
                     break;
                 case Key.Add when Keyboard.Modifiers == ModifierKeys.Control:
-                    dataContext.InsertRelCoordinate.Execute(true);
+                    CurrentDataContext.InsertRelCoordinate.Execute(true);
                     break;
                 case Key.Add when Keyboard.Modifiers==ModifierKeys.None:
-                    dataContext.AddRelCoordinate.Execute(true);
+                    CurrentDataContext.AddRelCoordinate.Execute(true);
                     break;
 
                 case Key.Multiply:
-                    dataContext.GotoXY.Execute(Keyboard.Modifiers.ToString());
+                    CurrentDataContext.GotoXY.Execute(Keyboard.Modifiers.ToString());
                     e.Handled = true;
                     break;
             }
@@ -148,11 +175,45 @@ namespace XYCordReader
 
         private void DeleteRelCoordinate_Click(object sender, RoutedEventArgs? e)
         {
-            if (this.DataContext is not MainViewModel dataContext)
+            if (CurrentDataContext == null)
                 return;
 
-            dataContext.DeleteRelCoordinateSelectedItemsCmd(CoordinatesList.SelectedItems);
+            CurrentDataContext.DeleteRelCoordinateSelectedItemsCmd(CoordinatesList.SelectedItems);
         }
 
+        private void ExportRelative_Click(object sender, RoutedEventArgs e)
+        {
+            if (CurrentDataContext == null)
+                return;
+
+            var saveFileDialog = new SaveFileDialog()
+            {
+                FileName = CurrentDataContext.LastExportFile,
+                Filter = "CSV UTF-8 (*.csv)|*.csv",
+
+            };
+
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                CurrentDataContext.ExportRelative(saveFileDialog.FileName);
+            }
+        }
+
+        private void ExportAll_Click(object sender, RoutedEventArgs e)
+        {
+            if (CurrentDataContext == null)
+                return;
+
+            var saveFileDialog = new SaveFileDialog()
+            {
+                FileName = CurrentDataContext.LastExportFile,
+                Filter = "CSV UTF-8 (*.csv)|*.csv",
+            };
+
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                CurrentDataContext.ExportAll(saveFileDialog.FileName);
+            }
+        }
     }
 }

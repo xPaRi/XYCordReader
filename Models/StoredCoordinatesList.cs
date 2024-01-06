@@ -3,9 +3,11 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Shapes;
 
 namespace XYCordReader.Models
 {
@@ -40,5 +42,23 @@ namespace XYCordReader.Models
             base.Add(storedCoordinates);
         }
 
+        /// <summary>
+        /// Uloží všechna data do souboru
+        /// </summary>
+        /// <param name="path"></param>
+        public void ExportAll(string path)
+        {
+            var lines = new List<string> { StoredCoordinates.GetAllStringHeader() };
+            lines.AddRange(this.Select(it => it.GetAllString()));
+
+            File.WriteAllLines(path, lines);
+        }
+
+        /// <summary>
+        /// Uloží jen relativní data do souboru
+        /// </summary>
+        /// <param name="path"></param>
+        /// <param name="includeZ">Nastavuje, zda bude exportována souřadnice Z</param>
+        public void ExportRelative(string path, bool includeZ) => File.WriteAllLines(path, this.Select(it => it.GetRelativeString(includeZ)));
     }
 }

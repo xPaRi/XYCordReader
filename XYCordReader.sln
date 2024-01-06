@@ -3,18 +3,29 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.8.34309.116
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XYCordReader", "XYCordReader.csproj", "{8207AAD7-EB86-485A-BB91-F54EB631A9AF}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "XYCordReader", "XYCordReader.csproj", "{8207AAD7-EB86-485A-BB91-F54EB631A9AF}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UniLib", "..\UniLib\UniLib.csproj", "{E690E74F-637E-4324-91C5-9A9E6E687619}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug (ČHMÚ)|Any CPU = Debug (ČHMÚ)|Any CPU
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{8207AAD7-EB86-485A-BB91-F54EB631A9AF}.Debug (ČHMÚ)|Any CPU.ActiveCfg = Debug|Any CPU
+		{8207AAD7-EB86-485A-BB91-F54EB631A9AF}.Debug (ČHMÚ)|Any CPU.Build.0 = Debug|Any CPU
 		{8207AAD7-EB86-485A-BB91-F54EB631A9AF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{8207AAD7-EB86-485A-BB91-F54EB631A9AF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8207AAD7-EB86-485A-BB91-F54EB631A9AF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8207AAD7-EB86-485A-BB91-F54EB631A9AF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E690E74F-637E-4324-91C5-9A9E6E687619}.Debug (ČHMÚ)|Any CPU.ActiveCfg = Debug (ČHMÚ)|Any CPU
+		{E690E74F-637E-4324-91C5-9A9E6E687619}.Debug (ČHMÚ)|Any CPU.Build.0 = Debug (ČHMÚ)|Any CPU
+		{E690E74F-637E-4324-91C5-9A9E6E687619}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E690E74F-637E-4324-91C5-9A9E6E687619}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E690E74F-637E-4324-91C5-9A9E6E687619}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E690E74F-637E-4324-91C5-9A9E6E687619}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

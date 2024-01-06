@@ -6,7 +6,24 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <Authors>PaRi</Authors>
+    <ApplicationIcon>app.ico</ApplicationIcon>
+
+	<!-- *** Get&Go! *** -->
+	<Deterministic>False</Deterministic>
+	<NoWarn>7035</NoWarn>
+	<AssemblyVersion>1.0.*</AssemblyVersion>
+	<CurrentYear>$([System.DateTime]::Now.ToString(yyyy))</CurrentYear>
+	<Product></Product>
+	<Company>PaRi</Company>
+	<Copyright>Copyright ©2023 - $(CurrentYear) $(Company) Všechna práva vyhrazena.</Copyright>
+	<GenerateAssemblyTitleAttribute>False</GenerateAssemblyTitleAttribute>
+	<!-- *************** -->
   </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="app.ico" />
+  </ItemGroup>
 
   <ItemGroup>
     <Folder Include="Converters\" />
@@ -22,6 +39,10 @@
     <PackageReference Include="Syncfusion.Shared.WPF" Version="23.2.7" />
     <PackageReference Include="Syncfusion.Themes.MaterialLightBlue.WPF" Version="23.2.7" />
     <PackageReference Include="System.IO.Ports" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\UniLib\UniLib.csproj" />
   </ItemGroup>
 
 </Project>

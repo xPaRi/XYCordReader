@@ -13,7 +13,10 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Collections.ObjectModel;
 using Syncfusion.Data.Extensions;
+using Microsoft.Win32;
 
+using IDEA.UniLib.Extensions;
+using System.Reflection;
 
 namespace XYCordReader.ViewModels
 {
@@ -30,12 +33,14 @@ namespace XYCordReader.ViewModels
 
             _SerialPort = new SerialPort();
             _SerialPort.DataReceived += new SerialDataReceivedEventHandler(DataReceivedHandler);
+
+            _AllowZ = AppRegistry.GetData(nameof(AllowZ), true);
         }
 
         /// <summary>
         /// Název aplikace
         /// </summary>
-        public static string Title => "XY CORD READER";
+        public static string Title => $"{Assembly.GetExecutingAssembly().GetTitle()} ({Assembly.GetExecutingAssembly().GetVersion()})";
 
         /// <summary>
         /// Sada velikostí kroků a rychlostí
@@ -48,6 +53,7 @@ namespace XYCordReader.ViewModels
 
         private StepLengthAndSpeedList _StepLengthAndSpeedList = new();
 
+        public RegistryKey AppRegistry => RegistryExt.GetUserAppRegistryKey(Assembly.GetExecutingAssembly());
 
         #region Serial Communication
 
@@ -205,7 +211,7 @@ namespace XYCordReader.ViewModels
         }
 
         #endregion
-
+        
         #region UI and other
 
         /// <summary>
@@ -214,10 +220,14 @@ namespace XYCordReader.ViewModels
         public bool AllowZ
         {
             get => _AllowZ;
-            set => SetValue(ref _AllowZ, value);
+            set
+            {
+                SetValue(ref _AllowZ, value);
+                AppRegistry.SetData(nameof(AllowZ), _AllowZ);
+            }
         }
 
-        private bool _AllowZ = true;
+        private bool _AllowZ;
 
 
         /// <summary>
@@ -529,8 +539,41 @@ namespace XYCordReader.ViewModels
             StoredCoordinatesSelectedIndex = index;
         }
 
-
         #endregion
 
+        #region Export
+
+        /// <summary>
+        /// Název posledního použitého souboru.
+        /// </summary>
+        public string LastExportFile
+        {
+            get => AppRegistry.GetData(nameof(LastExportFile), "data.csv");
+            set => AppRegistry.SetData(nameof(LastExportFile), value);
+        }
+
+        /// <summary>
+        /// Uloží vše do souboru.
+        /// </summary>
+        /// <param name="fileName"></param>
+        public void ExportAll(string fileName)
+        {
+            LastExportFile = fileName;
+
+            _StoredCoordinatesList.ExportAll(fileName);
+        }
+
+        /// <summary>
+        /// Uloží pouze relativní data do souboru.
+        /// </summary>
+        /// <param name="fileName"></param>
+        public void ExportRelative(string fileName)
+        {
+            LastExportFile = fileName;
+
+            _StoredCoordinatesList.ExportRelative(fileName, AllowZ);
+        }
+
+        #endregion
     }
 }
