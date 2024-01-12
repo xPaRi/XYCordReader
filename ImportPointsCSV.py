@@ -43,8 +43,7 @@ def run(context):
         data = []
 
         for line in file:
-            tempLine = line
-            pntStrArr = tempLine.replace(";",",").split(',')
+            pntStrArr = line.replace(";",",").split(',')
 
             if len(pntStrArr) < 2:
                 continue
