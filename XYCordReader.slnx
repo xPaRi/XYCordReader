@@ -1,0 +1,11 @@
+<Solution>
+  <Configurations>
+    <BuildType Name="Debug" />
+    <BuildType Name="Debug (ČHMÚ)" />
+    <BuildType Name="Release" />
+  </Configurations>
+  <Project Path="../UniLib/UniLib.csproj" />
+  <Project Path="XYCordReader.csproj">
+    <BuildType Solution="Debug (ČHMÚ)|*" Project="Debug" />
+  </Project>
+</Solution>

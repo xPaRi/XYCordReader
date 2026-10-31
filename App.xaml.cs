@@ -17,7 +17,7 @@ namespace XYCordReader
             Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
             Thread.CurrentThread.CurrentUICulture = CultureInfo.InvariantCulture;
 
-            Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense("Mjk3NTcyNUAzMjMzMmUzMDJlMzBJNDdteFpVNVpGbFVvTGhqSlpGdzlZaUltSkNDazg1eFZJU1Q3Ri9tT0xFPQ==;Mjk3NTcyNkAzAzMjMzMzMzHcyMd3WHUZJlM FFeXB1aVQzZzdXZkwybEt6a2hjPQ==");
+            Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense("Ngo9BigBOggjGyl/VkN+XU9HcVRLVGpAY1J0WGBYb1xzflBPallYT3RfQFtiSX1Sd0xmWX5bcHFWRmtfVA==");
             Syncfusion.SfSkinManager.SfSkinManager.ApplyStylesOnApplication = true; //aby vše v aplikaci mělo stejné téma
         }
   
