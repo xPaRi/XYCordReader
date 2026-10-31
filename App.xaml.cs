@@ -1,26 +1,18 @@
-﻿using System.Configuration;
-using System.Data;
-using System.Globalization;
-using System.Windows;
-using System.Windows.Markup;
+﻿namespace XYCordReader;
 
-namespace XYCordReader
+/// <summary>
+/// Interaction logic for App.xaml
+/// </summary>
+public partial class App : Application
 {
-    /// <summary>
-    /// Interaction logic for App.xaml
-    /// </summary>
-    public partial class App : Application
+    public App()
     {
-        public App()
-        {
-            //Desetinné tečky v celé aplikaci
-            Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
-            Thread.CurrentThread.CurrentUICulture = CultureInfo.InvariantCulture;
+        //Desetinné tečky v celé aplikaci
+        Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
+        Thread.CurrentThread.CurrentUICulture = CultureInfo.InvariantCulture;
 
-            Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense("Ngo9BigBOggjGyl/VkN+XU9HcVRLVGpAY1J0WGBYb1xzflBPallYT3RfQFtiSX1Sd0xmWX5bcHFWRmtfVA==");
-            Syncfusion.SfSkinManager.SfSkinManager.ApplyStylesOnApplication = true; //aby vše v aplikaci mělo stejné téma
-        }
-  
+        Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense("Ngo9BigBOggjGyl/VkN+XU9HcVRLVGpAY1J0WGBYb1xzflBPallYT3RfQFtiSX1Sd0xmWX5bcHFWRmtfVA==");
+        Syncfusion.SfSkinManager.SfSkinManager.ApplyStylesOnApplication = true; //aby vše v aplikaci mělo stejné téma
     }
 
 }

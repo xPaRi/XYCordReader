@@ -1,579 +1,580 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.IO.Ports;
-using System.Windows.Input;
+﻿using System.IO.Ports;
 using XYCordReader.Models;
-using static System.Runtime.InteropServices.JavaScript.JSType;
-using System.Diagnostics;
-using System.Globalization;
-using System.Runtime.CompilerServices;
-using System.Collections.ObjectModel;
 using Syncfusion.Data.Extensions;
 using Microsoft.Win32;
 
-using IDEA.UniLib.Extensions;
-using System.Reflection;
 
-namespace XYCordReader.ViewModels
+namespace XYCordReader.ViewModels;
+
+public partial class MainViewModel : ObservableObject
 {
-    public class MainViewModel : NotifyPropertyChangedBase
+    public MainViewModel()
     {
-        public MainViewModel() 
+        PortName = PortNameList.LastOrDefault() ?? string.Empty;
+
+        CoordinateAbs.PropertyChanged += (sender, e) => CoordinateRel_Recalculate();
+        CoordinateZero.PropertyChanged += (sender, e) => CoordinateRel_Recalculate();
+
+        StoredCoordinatesList = new StoredCoordinatesList(CoordinateZero);
+
+        _SerialLink = new GCodeSerialLink();
+        _SerialLink.Error += message => SetStatus(message, true);
+        _SerialLink.PositionReceived += SerialLink_PositionReceived;
+        _SerialLink.Closed += () => OnUi(() =>
         {
-            _PortName = PortNameList.Last().ToString();
-
-            _CoordinateAbs.PropertyChanged += (sender, e) => CoordinateRel_Recalculate();
-            _CoordinateZero.PropertyChanged += (sender, e) => CoordinateRel_Recalculate();
-
-            _StoredCoordinatesList = new StoredCoordinatesList(CoordinateZero);
-
-            _SerialPort = new SerialPort();
-            _SerialPort.DataReceived += new SerialDataReceivedEventHandler(DataReceivedHandler);
-
-            _AllowZ = AppRegistry.GetData(nameof(AllowZ), true);
-        }
-
-        /// <summary>
-        /// Název aplikace
-        /// </summary>
-        public static string Title => $"{Assembly.GetExecutingAssembly().GetTitle()} ({Assembly.GetExecutingAssembly().GetVersion()})";
-
-        /// <summary>
-        /// Sada velikostí kroků a rychlostí
-        /// </summary>
-        public StepLengthAndSpeedList StepLengthAndSpeedList
-        {
-            get => _StepLengthAndSpeedList;
-            set => _StepLengthAndSpeedList = value;
-        }
-
-        private StepLengthAndSpeedList _StepLengthAndSpeedList = new();
-
-        public RegistryKey AppRegistry => RegistryExt.GetUserAppRegistryKey(Assembly.GetExecutingAssembly());
-
-        #region Serial Communication
-
-        public static int BaudRate => 115200;
-
-        public static Parity Parity => Parity.None;
-
-        public static int DataBits = 8;
-
-        public static StopBits StopBits = StopBits.One;
-
-        /// <summary>
-        /// Seznam názvů portů
-        /// </summary>
-        public IEnumerable<string> PortNameList => SerialPort.GetPortNames().OrderBy(it => it);
-
-        /// <summary>
-        /// Aktualizuje seznam portů.
-        /// </summary>
-        public ICommand RefreshPortNameList => _RefreshPortNameList ??= new CommandHandler(RefreshPortListCmd, true);
-
-        private ICommand? _RefreshPortNameList;
-        private void RefreshPortListCmd() => OnPropertyChanged(nameof(PortNameList));
-
-
-        /// <summary>
-        /// Na tomto portu bude probíhat komunikace
-        /// </summary>
-        private readonly SerialPort _SerialPort;
-
-        /// <summary>
-        /// Aktuálně vybraný port
-        /// </summary>
-        public string PortName
-        {
-            get => _PortName;
-            set => SetValue(ref _PortName, value);
-        }
-        
-        private string _PortName;
-
-        public bool IsConnected => _SerialPort.IsOpen;
-
-
-        /// <summary>
-        /// Připojení k vybranému portu.
-        /// </summary>
-        public ICommand OpenPort => _OpenPort ??= new CommandHandler(OpenPortCmd, true);
-
-        private ICommand? _OpenPort;
-
-        private void OpenPortCmd()
-        {
-            _SerialPort.PortName = PortName;
-            _SerialPort.BaudRate = BaudRate;
-            _SerialPort.Parity = Parity;
-            _SerialPort.DataBits = DataBits;
-            _SerialPort.StopBits = StopBits;
-            
-            try
-            {
-                _SerialPort.Open();
-
-                GetCurrentCoordinatesCmd();
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine(ex.Message);
-            }
-
-            OnPropertyChanged(nameof(IsConnected));
-        }
-
-
-        /// <summary>
-        /// Odpojení portu.
-        /// </summary>
-        public ICommand ClosePort => _ClosePort ??= new CommandHandler(ClosePortCmd, true);
-
-        private ICommand? _ClosePort;
-        private void ClosePortCmd()
-        {
-            if (_SerialPort == null || !_SerialPort.IsOpen)
-                return;
-
-            _SerialPort.Close();
-
             CoordinateAbs.Clear();
+            NotifyConnectionChanged();
+        });
 
-            OnPropertyChanged(nameof(IsConnected));
+        AllowZ = AppRegistry.GetData(nameof(AllowZ), true);
+    }
+
+    /// <summary>
+    /// Název aplikace
+    /// </summary>
+    public static string Title => $"{Assembly.GetExecutingAssembly().GetTitle()} ({Assembly.GetExecutingAssembly().GetVersion()})";
+
+    /// <summary>
+    /// Sada velikostí kroků a rychlostí
+    /// </summary>
+    public StepLengthAndSpeedList StepLengthAndSpeedList { get; } = [];
+
+    public RegistryKey AppRegistry => RegistryExt.GetUserAppRegistryKey(Assembly.GetExecutingAssembly());
+
+    #region Serial Communication
+
+    public static int BaudRate => 115200;
+
+    public static Parity Parity => Parity.None;
+
+    public static int DataBits = 8;
+
+    public static StopBits StopBits = StopBits.One;
+
+    /// <summary>
+    /// Seznam názvů portů
+    /// </summary>
+    public IEnumerable<string> PortNameList => SerialPort.GetPortNames().OrderBy(it => it);
+
+    /// <summary>
+    /// Aktualizuje seznam portů.
+    /// </summary>
+    [RelayCommand]
+    private void RefreshPortNameList() => OnPropertyChanged(nameof(PortNameList));
+
+
+    /// <summary>
+    /// Přes tuto linku probíhá komunikace se strojem.
+    /// </summary>
+    private readonly GCodeSerialLink _SerialLink;
+
+    /// <summary>
+    /// Aktuálně vybraný port
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ConnectionText))]
+    public partial string PortName { get; set; }
+
+    public bool IsConnected => _SerialLink.IsOpen;
+
+    /// <summary>
+    /// Popis připojení pro stavový řádek.
+    /// </summary>
+    public string ConnectionText => IsConnected ? $"{PortName}, {BaudRate} Bd" : "Disconnected";
+
+    private void NotifyConnectionChanged()
+    {
+        OnPropertyChanged(nameof(IsConnected));
+        OnPropertyChanged(nameof(ConnectionText));
+    }
+
+
+    /// <summary>
+    /// Připojení k vybranému portu.
+    /// </summary>
+    [RelayCommand]
+    private void OpenPort()
+    {
+        try
+        {
+            _SerialLink.Open(PortName, BaudRate, Parity, DataBits, StopBits);
+
+            SetStatus($"Connected to {PortName}.");
+
+            GetCurrentCoordinates();
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"Cannot open {PortName}: {ex.Message}", true);
         }
 
-        /// <summary>
-        /// Zahoumování (G28).
-        /// </summary>
-        public ICommand Homing => _Homing ??= new CommandHandler(HomingCmd, true);
+        NotifyConnectionChanged();
+    }
 
-        private ICommand? _Homing;
 
-        private void HomingCmd()
+    /// <summary>
+    /// Odpojení portu.
+    /// </summary>
+    [RelayCommand]
+    private void ClosePort()
+    {
+        if (!_SerialLink.IsOpen)
+            return;
+
+        _SerialLink.Close();
+
+        lock (_ExpectedLock)
         {
-            if (!_SerialPort.IsOpen)
-                return;
-
-            _SerialPort.WriteLine("G28 W"); //Homing
-            _SerialPort.WriteLine("G92 X0 Y0 Z0"); //Set zero position
-
-            CoordinateAbs.Clear();
+            _HasExpected = false;
         }
 
+        CoordinateAbs.Clear();
 
-        /// <summary>
-        /// Získá aktuální souřadnice XYZ (M114).
-        /// </summary>
-        public ICommand GetCurrentCoordinates => _GetCurrentCoordinates ??= new CommandHandler(GetCurrentCoordinatesCmd, true);
+        NotifyConnectionChanged();
 
-        private ICommand? _GetCurrentCoordinates;
+        SetStatus("Disconnected.");
+    }
 
-        private void GetCurrentCoordinatesCmd()
+    /// <summary>
+    /// Zahoumování (G28).
+    /// </summary>
+    [RelayCommand]
+    private void Homing()
+    {
+        if (!_SerialLink.IsOpen)
+            return;
+
+        lock (_ExpectedLock)
         {
-            if (!_SerialPort.IsOpen)
-                return;
+            _HasExpected = false;
 
-            _SerialPort.WriteLine("M114");
+            _SerialLink.Send("G28 W", HomingTimeoutMs); //Homing
+            _SerialLink.Send("M114", key: SyncKey); //Skutečná pozice po homingu (bez G92, pracuje se se souřadnicemi stroje)
         }
+    }
 
-        /// <summary>
-        /// Oddělovače pro čtení dat zaslaných seriovou linkou...
-        /// </summary>
-        private static readonly char[] SeparatorList = [' ', ':', 'X', 'Y', 'Z', 'E'];
+    /// <summary>
+    /// Homing může trvat dlouho.
+    /// </summary>
+    private const int HomingTimeoutMs = 120_000;
 
-        private void DataReceivedHandler(object sender, SerialDataReceivedEventArgs e)
+
+    /// <summary>
+    /// Získá aktuální souřadnice XYZ (M114).
+    /// </summary>
+    [RelayCommand]
+    private void GetCurrentCoordinates()
+    {
+        if (!_SerialLink.IsOpen)
+            return;
+
+        lock (_ExpectedLock)
         {
-            var serialPort = (SerialPort)sender;
-            var indata = serialPort.ReadExisting();
+            _HasExpected = false; //pozice ze stroje se převezme bez porovnávání
 
-            if (indata != null)
+            _SerialLink.Send("M114", key: SyncKey);
+        }
+    }
+
+    /// <summary>
+    /// Klíče příkazů, u kterých má ve frontě zůstat jen ten poslední.
+    /// </summary>
+    private const string MoveKey = "move";
+    private const string SyncKey = "sync";
+
+    /// <summary>
+    /// Tolerance při porovnání očekávané a skutečné pozice (M114 vrací dvě desetinná místa).
+    /// </summary>
+    private const decimal PositionTolerance = 0.011m;
+
+    /// <summary>
+    /// Chrání očekávanou pozici a frontu příkazů, aby se odpověď na M114 neporovnala se zastaralou pozicí.
+    /// </summary>
+    private readonly object _ExpectedLock = new();
+
+    /// <summary>
+    /// Pozice, kam se má stroj podle odeslaných příkazů dostat.
+    /// </summary>
+    private readonly CoorXYZ _Expected = new();
+
+    private bool _HasExpected;
+
+    /// <summary>
+    /// Po pohybu počká na dojetí (M400) a zeptá se stroje na skutečnou pozici (M114).
+    /// Při dalším pohybu se dotaz přesune na konec fronty, takže se vyhodnotí až po posledním pohybu.
+    /// </summary>
+    private void RequestPositionCheck()
+    {
+        _SerialLink.Send("M400", SyncTimeoutMs, SyncKey + "-wait");
+        _SerialLink.Send("M114", key: SyncKey);
+    }
+
+    private const int SyncTimeoutMs = 60_000;
+
+    private void SerialLink_PositionReceived(decimal x, decimal y, decimal z)
+    {
+        string? message = null;
+        var isError = false;
+
+        lock (_ExpectedLock)
+        {
+            if (_HasExpected)
             {
-                Debug.WriteLine(indata);
+                if (_SerialLink.QueuedCount > 0)
+                    return; //od odeslání dotazu přibyl další pohyb, odpověď je zastaralá
 
-                if (indata.StartsWith("X:"))
+                _HasExpected = false;
+
+                if (Math.Abs(x - _Expected.X) > PositionTolerance
+                    || Math.Abs(y - _Expected.Y) > PositionTolerance
+                    || Math.Abs(z - _Expected.Z) > PositionTolerance)
                 {
-                    //X:0.00 Y:0.00 Z:0.00 E:0.00 Count X:1400 Y:-400 Z:800
-                    var aValues = indata.Split(SeparatorList, StringSplitOptions.RemoveEmptyEntries);
-
-                    if (aValues.Length >= 3
-                        && decimal.TryParse(aValues[0], CultureInfo.InvariantCulture, out var x)
-                        && decimal.TryParse(aValues[1], CultureInfo.InvariantCulture, out var y)
-                        && decimal.TryParse(aValues[2], CultureInfo.InvariantCulture, out var z))
-                    {
-                        CoordinateAbs.Set(x, y, z);
-                    }
+                    message = FormattableString.Invariant(
+                        $"Machine is at X{x} Y{y} Z{z}, expected X{_Expected.X} Y{_Expected.Y} Z{_Expected.Z}. Position corrected.");
+                    isError = true;
+                }
+                else
+                {
+                    message = "Machine position confirmed.";
                 }
             }
         }
 
-        #endregion
-        
-        #region UI and other
-
-        /// <summary>
-        /// Povolí nebo zakáže viditelnost ovládání osy Z.
-        /// </summary>
-        public bool AllowZ
+        OnUi(() =>
         {
-            get => _AllowZ;
-            set
-            {
-                SetValue(ref _AllowZ, value);
-                AppRegistry.SetData(nameof(AllowZ), _AllowZ);
-            }
-        }
-
-        private bool _AllowZ;
-
-
-        /// <summary>
-        /// Ukončení aplikace.
-        /// </summary>
-        public ICommand TryClose => _TryClose ??= new CommandHandler(TryCloseCmd, true);
-
-        private ICommand? _TryClose;
-
-        private void TryCloseCmd() => System.Windows.Application.Current.Shutdown();
-
-        #endregion
-
-        #region Moving Command
-
-        private void MoveXYZ(int directionX, int directionY, int directionZ, string modifier)
-        {
-            if (!_SerialPort.IsOpen)
-                return;
-
-            var stepLengthAndSpeed = StepLengthAndSpeedList.FirstOrDefault(it => it.ModifierKeys == modifier, StepLengthAndSpeedList[0]);
-
-            CoordinateAbs.SetWithDirection(stepLengthAndSpeed.StepLength, directionX, directionY, directionZ);
-
-            _SerialPort.WriteLine($"G1 X{CoordinateAbs.X} Y{CoordinateAbs.Y} Z{CoordinateAbs.Z} F{stepLengthAndSpeed.Speed}");
-        }
-
-
-        /// <summary>
-        /// Goto Selected XY
-        /// </summary>
-        public ICommand GotoXY => _GotoXY ??= new CommandHandlerWithModifiers(modifier => GotoXYCmd(modifier), true);
-
-        private ICommand? _GotoXY;
-
-        private void GotoXYCmd(string modifier) 
-        {
-            if (!_SerialPort.IsOpen)
-                return;
-
-            var index = StoredCoordinatesSelectedIndex;
-
-            if (index < 0) 
-                return;
-
-            var coordinates = StoredCoordinatesList[index].AbsCoordinate;
-
-            CoordinateAbs.Set(coordinates);
-
-            var stepLengthAndSpeed = StepLengthAndSpeedList.FirstOrDefault(it => it.ModifierKeys == modifier, StepLengthAndSpeedList[0]);
-
-            _SerialPort.WriteLine($"G1 X{coordinates.X} Y{coordinates.Y} F{stepLengthAndSpeed.Speed}");
-        }
-
-
-        #endregion
-
-        #region Coordinate Abs
-
-        /// <summary>
-        /// Souřadnice stroje.
-        /// </summary>
-        public CoorXYZ CoordinateAbs
-        {
-            get => _CoordinateAbs;
-        }
-
-        private CoorXYZ _CoordinateAbs = new CoorXYZ(true);
-
-        /// <summary>
-        /// X+
-        /// </summary>
-        public ICommand XUp => _XUp ??= new CommandHandlerWithModifiers(modifier => XUpCmd(modifier), true);
-
-        private ICommand? _XUp;
-
-        private void XUpCmd(string modifier) => MoveXYZ(1, 0, 0, modifier);
-
-        /// <summary>
-        /// X-
-        /// </summary>
-        public ICommand XDown => _XDown ??= new CommandHandlerWithModifiers(modifier => XDownCmd(modifier), true);
-
-        private ICommand? _XDown;
-
-        private void XDownCmd(string modifier) => MoveXYZ(-1, 0, 0, modifier);
-
-
-        /// <summary>
-        /// Y+
-        /// </summary>
-        public ICommand YUp => _YUp ??= new CommandHandlerWithModifiers(modifier => YUpCmd(modifier), true);
-
-        private ICommand? _YUp;
-
-        private void YUpCmd(string modifier) => MoveXYZ(0, 1, 0, modifier);
-
-        /// <summary>
-        /// Y-
-        /// </summary>
-        public ICommand YDown => _YDown ??= new CommandHandlerWithModifiers(modifier => YDownCmd(modifier), true);
-
-        private ICommand? _YDown;
-
-        private void YDownCmd(string modifier) => MoveXYZ(0, -1, 0, modifier);
-
-
-        /// <summary>
-        /// Z+
-        /// </summary>
-        public ICommand ZUp => _ZUp ??= new CommandHandlerWithModifiers(modifier => ZUpCmd(modifier), true);
-
-        private ICommand? _ZUp;
-
-        private void ZUpCmd(string modifier) => MoveXYZ(0, 0, 1, modifier);
-
-        /// <summary>
-        /// Z-
-        /// </summary>
-        public ICommand ZDown => _ZDown ??= new CommandHandlerWithModifiers(modifier => ZDownCmd(modifier), true);
-
-        private ICommand? _ZDown;
-
-        private void ZDownCmd(string modifier) => MoveXYZ(0, 0, -1, modifier);
-
-
-        #endregion
-
-        #region Coordinate Zero 
-
-        /// <summary>
-        /// Souřadnice nulového bodu pro výpočet relativních souřadnic.
-        /// </summary>
-        public CoorXYZ CoordinateZero
-        {
-            get => _CoordinateZero;
-        }
-
-        private CoorXYZ _CoordinateZero = new();
-
-        /// <summary>
-        /// Nastaví Zero podle X
-        /// </summary>
-        public ICommand SetZeroX => _SetZeroX ??= new CommandHandler(SetZeroXCmd, true);
-
-        private ICommand? _SetZeroX;
-
-        private void SetZeroXCmd() => CoordinateZero.X = CoordinateAbs.X;
-
-        /// <summary>
-        /// Nastaví Zero podle Y
-        /// </summary>
-        public ICommand SetZeroY => _SetZeroY ??= new CommandHandler(SetZeroYCmd, true);
-
-        private ICommand? _SetZeroY;
-
-        private void SetZeroYCmd() => CoordinateZero.Y = CoordinateAbs.Y;
-
-        /// <summary>
-        /// Nastaví Zero podle Z
-        /// </summary>
-        public ICommand SetZeroZ => _SetZeroZ ??= new CommandHandler(SetZeroZCmd, true);
-
-        private ICommand? _SetZeroZ;
-        private void SetZeroZCmd() => CoordinateZero.Z = CoordinateAbs.Z;
-
-        #endregion
-
-        #region Coordinate Rel
-
-        /// <summary>
-        /// Relativní souřadnice přepočtené g4 absolutních souřadnic a souřadnic Zero.
-        /// </summary>
-        public CoorXYZ CoordinateRel
-        {
-            get => _CoordinateRel;
-        }
-
-        private CoorXYZ _CoordinateRel = new();
-
-        /// <summary>
-        /// Přepočítá relativní souřadnice
-        /// </summary>
-        private void CoordinateRel_Recalculate() => CoordinateRel.SetWithDecrement(CoordinateAbs, CoordinateZero);
-
-        #endregion
-
-        #region Coordinate List Action
-
-        /// <summary>
-        /// Aktuálně vybraný řádek v seznamu souřadnic
-        /// </summary>
-        public int StoredCoordinatesSelectedIndex
-        {
-            get => _StoredCoordinatesSelectedIndex;
-            set => SetValue(ref _StoredCoordinatesSelectedIndex, value);
-        }
-
-        private int _StoredCoordinatesSelectedIndex = -1;
-
-        /// <summary>
-        /// Seznam souřadnic.
-        /// </summary>
-        public StoredCoordinatesList StoredCoordinatesList
-        {
-            get => _StoredCoordinatesList;
-            set
-            {
-                if (_StoredCoordinatesList == value)
-                    return;
-
-                _StoredCoordinatesList = value;
-
-                OnPropertyChanged();
-            }
-        }
-
-        private StoredCoordinatesList _StoredCoordinatesList;
-
-        /// <summary>
-        /// Seznam vybraných souřadnic.
-        /// </summary>
-        public StoredCoordinatesList StoredCoordinatesSelection
-        {
-            get => _StoredCoordinatesSelection;
-            set
-            {
-                _StoredCoordinatesSelection = value;
-
-                Debug.WriteLine($"Selected: {_StoredCoordinatesSelection.Count}");
-
-                OnPropertyChanged();
-            }
-        }
-
-        private StoredCoordinatesList _StoredCoordinatesSelection = new StoredCoordinatesList(new CoorXYZ());
-
-
-        private StoredCoordinates GetCoordinate()
-        {
-            return new StoredCoordinates(CoordinateAbs, CoordinateZero);
-        }
-
-        /// <summary>
-        /// Přidá na konec seznamu relativní souřadnice
-        /// </summary>
-        public ICommand AddRelCoordinate => _AddRelCoordinate ??= new CommandHandler(AddRelCoordinateCmd, true);
-
-        private ICommand? _AddRelCoordinate;
-
-        private void AddRelCoordinateCmd()
-        {
-            StoredCoordinatesList.AddCoordinates(GetCoordinate());
-
-            StoredCoordinatesSelectedIndex = StoredCoordinatesList.Count - 1;
-        }
-
-        /// <summary>
-        /// Vloží před aktuání pozici kurzoru do seznamu relativní souřadnice
-        /// </summary>
-        public ICommand InsertRelCoordinate => _InsertRelCoordinate ??= new CommandHandler(InsertRelCoordinateCmd, true);
-
-        private ICommand? _InsertRelCoordinate;
-        
-        public void InsertRelCoordinateCmd()
-        {
-            var index = StoredCoordinatesSelectedIndex;
-
-            if (index < 0)
-            {
-                AddRelCoordinateCmd();
-                return;
-            }
-
-            StoredCoordinatesList.Insert(index, GetCoordinate());
-
-            StoredCoordinatesSelectedIndex = index;            
-        }
-
-        /// <summary>
-        /// Odstraní vybrané souřadnice ze seznamu
-        /// </summary>
-        public void DeleteRelCoordinateSelectedItemsCmd(ObservableCollection<object> storedCoordinates)
-        {
-            if (storedCoordinates.Count <= 0)
-                return;
-
-            var index = StoredCoordinatesSelectedIndex;
-
-            storedCoordinates.Cast<StoredCoordinates>()
-                .ToList() //jinak to vyletí na nemožnosti enumerovat odstraňované položky
-                .ForEach(it => StoredCoordinatesList.Remove(it));
-
-            if (StoredCoordinatesList.Count <= 0)
-                return;
-
-            if (index >= StoredCoordinatesList.Count)
-            {
-                StoredCoordinatesSelectedIndex = StoredCoordinatesList.Count - 1;
-                return;
-            }
-
-            if (index < 0)
-            {
-                StoredCoordinatesSelectedIndex = 0;
-                return;
-            }
-
-            StoredCoordinatesSelectedIndex = index;
-        }
-
-        #endregion
-
-        #region Export
-
-        /// <summary>
-        /// Název posledního použitého souboru.
-        /// </summary>
-        public string LastExportFile
-        {
-            get => AppRegistry.GetData(nameof(LastExportFile), "data.csv");
-            set => AppRegistry.SetData(nameof(LastExportFile), value);
-        }
-
-        /// <summary>
-        /// Uloží vše do souboru.
-        /// </summary>
-        /// <param name="fileName"></param>
-        public void ExportAll(string fileName)
-        {
-            LastExportFile = fileName;
-
-            _StoredCoordinatesList.ExportAll(fileName);
-        }
-
-        /// <summary>
-        /// Uloží pouze relativní data do souboru.
-        /// </summary>
-        /// <param name="fileName"></param>
-        public void ExportRelative(string fileName)
-        {
-            LastExportFile = fileName;
-
-            _StoredCoordinatesList.ExportRelative(fileName, AllowZ);
-        }
-
-        #endregion
+            CoordinateAbs.Set(x, y, z);
+
+            if (message != null)
+                SetStatus(message, isError);
+        });
     }
+
+    #endregion
+
+    #region Status bar
+
+    /// <summary>
+    /// Text ve stavovém řádku.
+    /// </summary>
+    [ObservableProperty]
+    public partial string StatusMessage { get; private set; } = "Select a port and press Open.";
+
+    /// <summary>
+    /// Stavový řádek ukazuje chybu.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool IsStatusError { get; private set; }
+
+    /// <summary>
+    /// Nastaví text stavového řádku (lze volat z libovolného vlákna).
+    /// </summary>
+    private void SetStatus(string message, bool isError = false)
+    {
+        Debug.WriteLine($"Status{(isError ? " (error)" : string.Empty)}: {message}");
+
+        OnUi(() =>
+        {
+            StatusMessage = message;
+            IsStatusError = isError;
+        });
+    }
+
+    private static void OnUi(Action action)
+    {
+        var dispatcher = System.Windows.Application.Current?.Dispatcher;
+
+        if (dispatcher == null || dispatcher.CheckAccess())
+            action();
+        else
+            dispatcher.BeginInvoke(action);
+    }
+
+    #endregion
+    
+    #region UI and other
+
+    /// <summary>
+    /// Povolí nebo zakáže viditelnost ovládání osy Z.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool AllowZ { get; set; }
+
+    partial void OnAllowZChanged(bool value) => AppRegistry.SetData(nameof(AllowZ), value);
+
+
+    /// <summary>
+    /// Ukončení aplikace.
+    /// </summary>
+    [RelayCommand]
+    private static void TryClose() => Application.Current.Shutdown();
+
+    #endregion
+
+    #region Moving Command
+
+    private void MoveXYZ(int directionX, int directionY, int directionZ, string? modifier)
+    {
+        if (!_SerialLink.IsOpen)
+            return;
+
+        var stepLengthAndSpeed = StepLengthAndSpeedList.FirstOrDefault(it => it.ModifierKeys == modifier, StepLengthAndSpeedList[0]);
+
+        CoordinateAbs.SetWithDirection(stepLengthAndSpeed.StepLength, directionX, directionY, directionZ);
+
+        //Při držení klávesy se neposlané pohyby sloučí do jednoho, který míří na poslední cíl
+        lock (_ExpectedLock)
+        {
+            _Expected.Set(CoordinateAbs);
+            _HasExpected = true;
+
+            _SerialLink.Send(
+                FormattableString.Invariant($"G1 X{CoordinateAbs.X} Y{CoordinateAbs.Y} Z{CoordinateAbs.Z} F{stepLengthAndSpeed.Speed}"),
+                key: MoveKey);
+
+            RequestPositionCheck();
+        }
+    }
+
+
+    /// <summary>
+    /// Goto Selected XY
+    /// </summary>
+    [RelayCommand]
+    private void GotoXY(string? modifier) 
+    {
+        if (!_SerialLink.IsOpen)
+            return;
+
+        var index = StoredCoordinatesSelectedIndex;
+
+        if (index < 0)
+            return;
+
+        var coordinates = StoredCoordinatesList[index].AbsCoordinate;
+
+        //Z se záměrně nemění (slouží jen k ostření)
+        CoordinateAbs.X = coordinates.X;
+        CoordinateAbs.Y = coordinates.Y;
+
+        var stepLengthAndSpeed = StepLengthAndSpeedList.FirstOrDefault(it => it.ModifierKeys == modifier, StepLengthAndSpeedList[0]);
+
+        lock (_ExpectedLock)
+        {
+            _Expected.Set(CoordinateAbs);
+            _HasExpected = true;
+
+            _SerialLink.Send(
+                FormattableString.Invariant($"G1 X{coordinates.X} Y{coordinates.Y} F{stepLengthAndSpeed.Speed}"),
+                key: MoveKey);
+
+            RequestPositionCheck();
+        }
+    }
+
+
+    #endregion
+
+    #region Coordinate Abs
+
+    /// <summary>
+    /// Souřadnice stroje.
+    /// </summary>
+    public CoorXYZ CoordinateAbs { get; } = new();
+
+    /// <summary>
+    /// X+
+    /// </summary>
+    [RelayCommand]
+    private void XUp(string? modifier) => MoveXYZ(1, 0, 0, modifier);
+
+    /// <summary>
+    /// X-
+    /// </summary>
+    [RelayCommand]
+    private void XDown(string? modifier) => MoveXYZ(-1, 0, 0, modifier);
+
+
+    /// <summary>
+    /// Y+
+    /// </summary>
+    [RelayCommand]
+    private void YUp(string? modifier) => MoveXYZ(0, 1, 0, modifier);
+
+    /// <summary>
+    /// Y-
+    /// </summary>
+    [RelayCommand]
+    private void YDown(string? modifier) => MoveXYZ(0, -1, 0, modifier);
+
+
+    /// <summary>
+    /// Z+
+    /// </summary>
+    [RelayCommand]
+    private void ZUp(string? modifier) => MoveXYZ(0, 0, 1, modifier);
+
+    /// <summary>
+    /// Z-
+    /// </summary>
+    [RelayCommand]
+    private void ZDown(string? modifier) => MoveXYZ(0, 0, -1, modifier);
+
+
+    #endregion
+
+    #region Coordinate Zero 
+
+    /// <summary>
+    /// Souřadnice nulového bodu pro výpočet relativních souřadnic.
+    /// </summary>
+    public CoorXYZ CoordinateZero { get; } = new();
+
+    /// <summary>
+    /// Nastaví Zero podle X
+    /// </summary>
+    [RelayCommand]
+    private void SetZeroX() => CoordinateZero.X = CoordinateAbs.X;
+
+    /// <summary>
+    /// Nastaví Zero podle Y
+    /// </summary>
+    [RelayCommand]
+    private void SetZeroY() => CoordinateZero.Y = CoordinateAbs.Y;
+
+    /// <summary>
+    /// Nastaví Zero podle Z
+    /// </summary>
+    [RelayCommand]
+    private void SetZeroZ() => CoordinateZero.Z = CoordinateAbs.Z;
+
+    #endregion
+
+    #region Coordinate Rel
+
+    /// <summary>
+    /// Relativní souřadnice přepočtené g4 absolutních souřadnic a souřadnic Zero.
+    /// </summary>
+    public CoorXYZ CoordinateRel { get; } = new();
+
+    /// <summary>
+    /// Přepočítá relativní souřadnice
+    /// </summary>
+    private void CoordinateRel_Recalculate() => CoordinateRel.SetWithDecrement(CoordinateAbs, CoordinateZero);
+
+    #endregion
+
+    #region Coordinate List Action
+
+    /// <summary>
+    /// Aktuálně vybraný řádek v seznamu souřadnic
+    /// </summary>
+    [ObservableProperty]
+    public partial int StoredCoordinatesSelectedIndex { get; set; } = -1;
+
+    /// <summary>
+    /// Seznam souřadnic.
+    /// </summary>
+    public StoredCoordinatesList StoredCoordinatesList { get; }
+
+    private StoredCoordinates GetCoordinate() => new StoredCoordinates(CoordinateAbs, CoordinateZero);
+
+    /// <summary>
+    /// Přidá na konec seznamu relativní souřadnice
+    /// </summary>
+    [RelayCommand]
+    private void AddRelCoordinate()
+    {
+        StoredCoordinatesList.Add(GetCoordinate());
+
+        StoredCoordinatesSelectedIndex = StoredCoordinatesList.Count - 1;
+    }
+
+    /// <summary>
+    /// Vloží před aktuání pozici kurzoru do seznamu relativní souřadnice
+    /// </summary>
+    
+    [RelayCommand]
+    private void InsertRelCoordinate()
+    {
+        var index = StoredCoordinatesSelectedIndex;
+
+        if (index < 0)
+        {
+            AddRelCoordinate();
+            return;
+        }
+
+        StoredCoordinatesList.Insert(index, GetCoordinate());
+
+        StoredCoordinatesSelectedIndex = index;            
+    }
+
+    /// <summary>
+    /// Odstraní vybrané souřadnice ze seznamu
+    /// </summary>
+    public void DeleteRelCoordinateSelectedItemsCmd(ObservableCollection<object> storedCoordinates)
+    {
+        if (storedCoordinates.Count <= 0)
+            return;
+
+        var index = StoredCoordinatesSelectedIndex;
+
+        storedCoordinates.Cast<StoredCoordinates>()
+            .ToList() //jinak to vyletí na nemožnosti enumerovat odstraňované položky
+            .ForEach(it => StoredCoordinatesList.Remove(it));
+
+        if (StoredCoordinatesList.Count <= 0)
+            return;
+
+        if (index >= StoredCoordinatesList.Count)
+        {
+            StoredCoordinatesSelectedIndex = StoredCoordinatesList.Count - 1;
+            return;
+        }
+
+        if (index < 0)
+        {
+            StoredCoordinatesSelectedIndex = 0;
+            return;
+        }
+
+        StoredCoordinatesSelectedIndex = index;
+    }
+
+    #endregion
+
+    #region Export
+
+    /// <summary>
+    /// Název posledního použitého souboru.
+    /// </summary>
+    public string LastExportFile
+    {
+        get => AppRegistry.GetData(nameof(LastExportFile), "data.csv");
+        set => AppRegistry.SetData(nameof(LastExportFile), value);
+    }
+
+    /// <summary>
+    /// Uloží vše do souboru.
+    /// </summary>
+    /// <param name="fileName"></param>
+    public void ExportAll(string fileName)
+    {
+        LastExportFile = fileName;
+
+        StoredCoordinatesList.ExportAll(fileName);
+    }
+
+    /// <summary>
+    /// Uloží pouze relativní data do souboru.
+    /// </summary>
+    /// <param name="fileName"></param>
+    public void ExportRelative(string fileName)
+    {
+        LastExportFile = fileName;
+
+        StoredCoordinatesList.ExportRelative(fileName, AllowZ);
+    }
+
+    #endregion
 }

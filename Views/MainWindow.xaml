@@ -3,7 +3,6 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:XYCordReader"
         xmlns:syncfusionskin ="clr-namespace:Syncfusion.SfSkinManager;assembly=Syncfusion.SfSkinManager.WPF"
         xmlns:vm="clr-namespace:XYCordReader.ViewModels"
         xmlns:sf="http://schemas.syncfusion.com/wpf"
@@ -25,8 +24,6 @@
 
     <sf:ChromelessWindow.Resources>
         <ResourceDictionary>
-            <vm:MainViewModel x:Key="viewModel"/>
-            
             <gc:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
             <gc:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
 
@@ -40,6 +37,27 @@
         </ResourceDictionary>
     </sf:ChromelessWindow.Resources>
 
+    <DockPanel>
+        <!-- Status bar -->
+        <Border DockPanel.Dock="Bottom" BorderBrush="LightGray" BorderThickness="0,1,0,0" Background="#FFF3F3F3" Padding="10,4">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Right" Text="{Binding ConnectionText}" Margin="20,0,0,0" Foreground="Gray"/>
+                <TextBlock Text="{Binding StatusMessage}" ToolTip="{Binding StatusMessage}" TextTrimming="CharacterEllipsis">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="Black"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsStatusError}" Value="True">
+                                    <Setter Property="Foreground" Value="Firebrick"/>
+                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </DockPanel>
+        </Border>
+
     <DockPanel Margin="10">
         <!-- Top panel -->
         <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
@@ -51,13 +69,13 @@
                       IsEnabled="{Binding IsConnected, Converter={StaticResource InverseBooleanConverter}}"
                       MinWidth="100"/>
             <Button DockPanel.Dock="Left" Content="Q" FontSize="16" FontFamily="Wingdings 3"
-                    Command="{Binding RefreshPortNameList}" 
+                    Command="{Binding RefreshPortNameListCommand}" 
                     ToolTip="Refresh the port list."
                     IsEnabled="{Binding IsConnected, Converter={StaticResource InverseBooleanConverter}}"
                     Margin="5,0" Padding="5"
                     />
             <Button DockPanel.Dock="Left" Content="_Open" 
-                    Command="{Binding OpenPort}"
+                    Command="{Binding OpenPortCommand}"
                     ToolTip="Connect to selected port."
                     Margin="5,0" Padding="5">
                 <Button.Visibility>
@@ -72,7 +90,7 @@
                 </Button.Visibility>
             </Button>
             <Button DockPanel.Dock="Left" Content="_Close" 
-                    Command="{Binding ClosePort}" 
+                    Command="{Binding ClosePortCommand}" 
                     ToolTip="Disonnect from current port."
                     Margin="5,0" Padding="5">
                 <Button.Visibility>
@@ -87,13 +105,13 @@
                 </Button.Visibility>
             </Button>
             <Button DockPanel.Dock="Left" Content="_Homing" 
-                    Command="{Binding Homing}" 
+                    Command="{Binding HomingCommand}" 
                     IsEnabled="{Binding IsConnected}"
                     HorizontalAlignment="Left" Margin="5,0" Padding="5"
-                    ToolTip="Homing (G28 W)&#10;and set the current position as zero (G92 X0 Y0 Z0)"
+                    ToolTip="Homing (G28 W)&#10;and read the machine position (M114)."
                     />
             <Button DockPanel.Dock="Left" Content="Get XYZ" 
-                    Command="{Binding GetCurrentCoordinates}" 
+                    Command="{Binding GetCurrentCoordinatesCommand}" 
                     IsEnabled="{Binding IsConnected}"
                     HorizontalAlignment="Left" Margin="5,0" Padding="5"
                     ToolTip="Get current machine position (M114)&#10;and set it to Absolute coordinates."
@@ -102,7 +120,7 @@
 
         <!-- Bottom panel -->
         <DockPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
-            <Button DockPanel.Dock="Right" Content="Exit" Command="{Binding TryClose}" Margin="5,0,0,0" Padding="20,5" />
+            <Button DockPanel.Dock="Right" Content="Exit" Command="{Binding TryCloseCommand}" Margin="5,0,0,0" Padding="20,5" />
             <Button x:Name="ExportAll"
                     Content="Export All…" 
                     ToolTip="Export all coordinates (X,Y,Z) with header."
@@ -219,21 +237,21 @@
                     <Button Content="6" FontSize="24" FontFamily="Wingdings 3"
                             ToolTip="Set Zero X by Absolute X." 
                             Grid.Row="2" Grid.Column="1"
-                            Command="{Binding SetZeroX}" IsEnabled="{Binding IsConnected}"
+                            Command="{Binding SetZeroXCommand}" IsEnabled="{Binding IsConnected}"
                             Padding="0" Margin="6"
                             />
 
                     <Button Content="6" FontSize="24" FontFamily="Wingdings 3"
                             ToolTip="Set Zero Y by Absolute Y." 
                             Grid.Row="2" Grid.Column="2" 
-                            Command="{Binding SetZeroY}" IsEnabled="{Binding IsConnected}"
+                            Command="{Binding SetZeroYCommand}" IsEnabled="{Binding IsConnected}"
                             Padding="0" Margin="6"
                             />
 
                     <Button Content="6" FontSize="24" FontFamily="Wingdings 3"
                             ToolTip="Set Zero Z by Absolute Z."
                             Grid.Row="2" Grid.Column="3"
-                            Command="{Binding SetZeroZ}" IsEnabled="{Binding IsConnected}"
+                            Command="{Binding SetZeroZCommand}" IsEnabled="{Binding IsConnected}"
                             Padding="0" Margin="6"
                             >
                         <Button.Visibility>
@@ -280,33 +298,33 @@
 
                     <Button Content="Ù" FontSize="30" FontFamily="Wingdings 3"
                             ToolTip="Move to left (X-). Hotkey: [Left Arrow]"
-                            Command="{Binding XDown}" IsEnabled="{Binding IsConnected}"
+                            Command="{Binding XDownCommand}" IsEnabled="{Binding IsConnected}"
                             Grid.Row="5" Grid.Column="1" 
                             Padding="0" Margin="6"
                             />
                     <Button Content="Ú" FontSize="30" FontFamily="Wingdings 3"
                             ToolTip="Move to right (X+). Hotkey: [Right Arrow]" 
-                            Command="{Binding XUp}" IsEnabled="{Binding IsConnected}"
+                            Command="{Binding XUpCommand}" IsEnabled="{Binding IsConnected}"
                             Grid.Row="6" Grid.Column="1" 
                             Padding="0" Margin="6"
                             />
 
                     <Button Content="Þ" FontSize="30" FontFamily="Wingdings 3"
                             ToolTip="Move to bottom (Y+). Hotkey: [Up Arrow]"
-                            Command="{Binding YUp}" IsEnabled="{Binding IsConnected}"
+                            Command="{Binding YUpCommand}" IsEnabled="{Binding IsConnected}"
                             Grid.Row="5" Grid.Column="2" 
                             Padding="0" Margin="6"
                             />
                     <Button Content="ß" FontSize="30" FontFamily="Wingdings 3"
                             ToolTip="Move to front (Y-). Hotkey: [Down Arrow]"
-                            Command="{Binding YDown}" IsEnabled="{Binding IsConnected}"
+                            Command="{Binding YDownCommand}" IsEnabled="{Binding IsConnected}"
                             Grid.Row="6" Grid.Column="2" 
                             Padding="0" Margin="6"
                             />
 
                     <Button Content="Û" FontSize="30" FontFamily="Wingdings 3"
                             ToolTip="Move to up (Z+). Hotkey: [Page Up]"
-                            Command="{Binding ZUp}" IsEnabled="{Binding IsConnected}"
+                            Command="{Binding ZUpCommand}" IsEnabled="{Binding IsConnected}"
                             Grid.Row="5" Grid.Column="3" 
                             Padding="0" Margin="6"
                             >
@@ -323,7 +341,7 @@
                     </Button>
                     <Button Content="Ü" FontSize="30" FontFamily="Wingdings 3"
                             ToolTip="Move to down (Z-). Hotkey: [Page Down]"
-                            Command="{Binding ZDown}" IsEnabled="{Binding IsConnected}"
+                            Command="{Binding ZDownCommand}" IsEnabled="{Binding IsConnected}"
                             Grid.Row="6" Grid.Column="3" 
                             Padding="0" Margin="6"
                             >
@@ -351,7 +369,7 @@
                     <Button Content="INSERT"
                             ToolTip="Insert current coordinates.&#10;Hotkey: [Ctrl] + [Numeric Multiply]"
                             DockPanel.Dock="Left"
-                            Command="{Binding InsertRelCoordinate}"
+                            Command="{Binding InsertRelCoordinateCommand}"
                             TextBlock.TextAlignment="Center"
                             Padding="10,10" Margin="0,5,5,2" 
                             />
@@ -359,7 +377,7 @@
                     <Button Content="APPEND"
                             ToolTip="Add current coordinates.&#10;Hotkey: [Numeric Add]"
                             DockPanel.Dock="Left"
-                            Command="{Binding AddRelCoordinate}" 
+                            Command="{Binding AddRelCoordinateCommand}" 
                             TextBlock.TextAlignment="Center"
                             Padding="10,10" Margin="5,5,5,2"
                             />
@@ -376,7 +394,7 @@
                     <Button Content="GOTO XY" 
                             ToolTip="Move to selected coordinates X;Y.&#10;Hotkey: [None | Shift | Ctrl] + [Numeric Multiply]"
                             DockPanel.Dock="Right"
-                            Command="{Binding GotoXY}" IsEnabled="{Binding IsConnected}"
+                            Command="{Binding GotoXYCommand}" IsEnabled="{Binding IsConnected}"
                             TextBlock.TextAlignment="Center"
                             Padding="10,10" Margin="5,5,2,2" 
                             HorizontalAlignment="Right"
@@ -438,5 +456,6 @@
 
         </DockPanel>
 
+    </DockPanel>
     </DockPanel>
 </sf:ChromelessWindow>

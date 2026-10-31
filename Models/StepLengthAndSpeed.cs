@@ -1,70 +1,37 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Input;
+﻿namespace XYCordReader.Models;
 
-namespace XYCordReader.Models
+/// <summary>
+/// Nastavení kroku a rychlosti.
+/// </summary>
+public partial class StepLengthAndSpeed : ObservableObject
 {
-    /// <summary>
-    /// Nastavení kroku a rychlosti.
-    /// </summary>
-    public class StepLengthAndSpeed : NotifyPropertyChangedBase
+    public StepLengthAndSpeed(string modifierKeys, decimal stepLength, int speed)
     {
-        public StepLengthAndSpeed(string modifierKeys, decimal stepLength, int speed)
-        {
-			_ModifierKeys = modifierKeys;
-            _StepLength = stepLength;
-            _Speed = speed;
-        }
-
-		public string ModifierKeysName => $"{_ModifierKeys}";
-
-        /// <summary>
-        /// Název sady.
-        /// </summary>
-        public string ModifierKeys
-		{
-			get => _ModifierKeys;
-			set
-			{
-				if (_ModifierKeys == value)
-					return;
-
-				_ModifierKeys = value;
-
-				OnPropertyChanged();
-			}
-		}
-
-		private string _ModifierKeys;
-
-
-		/// <summary>
-		/// Počet kroků.
-		/// </summary>
-		public decimal StepLength
-		{
-			get => _StepLength;
-			set => SetValue(ref _StepLength, value);
-		}
-
-		private decimal _StepLength;
-
-
-		/// <summary>
-		/// Rychlost.
-		/// </summary>
-		public int Speed
-		{
-			get => _Speed;
-            set => SetValue(ref _Speed, value);
-        }
-
-        private int _Speed;
-
-        public override string ToString() => $"{nameof(ModifierKeys)}={ModifierKeys}; {nameof(StepLength)}={StepLength}; {nameof(Speed)}={Speed}";
+        ModifierKeys = modifierKeys;
+        StepLength = stepLength;
+        Speed = speed;
     }
+
+    public string ModifierKeysName => $"{ModifierKeys}";
+
+    /// <summary>
+    /// Název sady.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ModifierKeysName))]
+    public partial string ModifierKeys { get; set; }
+
+    /// <summary>
+    /// Počet kroků.
+    /// </summary>
+    [ObservableProperty]
+    public partial decimal StepLength { get; set; }
+
+    /// <summary>
+    /// Rychlost.
+    /// </summary>
+    [ObservableProperty]
+    public partial int Speed { get; set; }
+
+    public override string ToString() => $"{nameof(ModifierKeys)}={ModifierKeys}; {nameof(StepLength)}={StepLength}; {nameof(Speed)}={Speed}";
 }
